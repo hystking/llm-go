@@ -1,4 +1,4 @@
-module llm-go
+module llmx
 
 go 1.24.6
 

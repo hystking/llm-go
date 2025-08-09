@@ -1,4 +1,4 @@
-# llm-go
+# llmx
 
 A tiny CLI that sends a message to an LLM Responses API and prints the returned text. It can optionally enforce a JSON Schema using a compact --format shorthand.
 
@@ -6,15 +6,15 @@ A tiny CLI that sends a message to an LLM Responses API and prints the returned 
 - Prerequisite: Go 1.24.x
 - Build: make build
 - Install to /usr/local/bin: sudo make install
-- Or: go build -o llm main.go parser.go
+- Or: go build -o llmx main.go parser.go
 
 ## Configure
 - Set your API key: export OPENAI_API_KEY=your_key
 - Default base URL: https://api.openai.com/v1
 
 ## Usage
-- `llm [flags] "your message"`
-- `echo "text" | llm`
+- `llmx [flags] "your message"`
+- `echo "text" | llmx`
 - Input rules:
   - If an argument is provided: message = argument
   - Else: message = stdin (errors if empty)
@@ -38,19 +38,19 @@ A tiny CLI that sends a message to an LLM Responses API and prints the returned 
 - Limitations: no nesting; element_type is required for arrays; invalid pairs (e.g., :string, tags:array[], name:string:string) cause an error
 
 ## Examples
-- Basic: `llm "Hello"`
-- Pipe stdin: `echo "Hello" | llm`
-- With instructions: `llm --instructions "Be brief." "Explain recursion"`
-- Structured JSON: `llm --format "name:string,age:integer" "Alice is a 14-year-old who is good at dancing."`
-- Arrays: `llm --format "tags:array[string]" "Give three tags for golang"`
-- Custom base URL: `llm --base-url http://localhost:8080/v1 "ping"`
+- Basic: `llmx "Hello"`
+- Pipe stdin: `echo "Hello" | llmx`
+- With instructions: `llmx --instructions "Be brief." "Explain recursion"`
+- Structured JSON: `llmx --format "name:string,age:integer" "Alice is a 14-year-old who is good at dancing."`
+- Arrays: `llmx --format "tags:array[string]" "Give three tags for golang"`
+- Custom base URL: `llmx --base-url http://localhost:8080/v1 "ping"`
 
 ## Advanced Examples
 
 ### Git commit message generation
 ```bash
 # Generate commit message from staged changes
-git diff --staged | llm \
+git diff --staged | llmx \
   --format "commit_message:string" \
   --instructions "Follow conventional commits format. Type should be feat/fix/docs/style/refactor/test/chore. Generate a git commit message for the following changes:" | \
   jq -r .commit_message
@@ -59,13 +59,13 @@ git diff --staged | llm \
 ### Log file analysis
 ```bash
 # Analyze error logs
-cat error.log | llm "Summarize the main issues and suggest solutions.\n" --format "issues:array[string],suggest_solutions:array[string]"
+cat error.log | llmx "Summarize the main issues and suggest solutions.\n" --format "issues:array[string],suggest_solutions:array[string]"
 ```
 
 ### Natural language to commands
 ```bash
 # Convert description to shell command
-llm "How do I find all .go files modified in the last 7 days?" --format "command:string,explanation:string"
+llmx "How do I find all .go files modified in the last 7 days?" --format "command:string,explanation:string"
 ```
 
 ## Behavior and errors

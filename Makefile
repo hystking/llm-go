@@ -1,18 +1,17 @@
-BINARY=llm
-SRC=main.go parser.go
+BINARY=llmx
 
 .PHONY: all build clean install test
 
 all: build
 
 build:
-	go build -o $(BINARY) $(SRC)
+	go build -o $(BINARY) .
 
 clean:
 	rm -f $(BINARY)
 
 install: build
-	mv $(BINARY) /usr/local/bin/
+	mv $(BINARY) ~/bin/
 
 test:
 	go test -v ./...

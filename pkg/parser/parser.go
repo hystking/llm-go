@@ -1,4 +1,4 @@
-package main
+package parser
 
 import (
 	"encoding/json"
@@ -6,9 +6,9 @@ import (
 	"strings"
 )
 
-// parseFormat parses a format string like "key1:type,key2:type,..." into a JSON schema
+// ParseFormat parses a format string like "key1:type,key2:type,..." into a JSON schema
 // Supports array types with element specifications: "key:array[element_type]"
-func parseFormat(format string) (map[string]interface{}, []string, error) {
+func ParseFormat(format string) (map[string]interface{}, []string, error) {
 	if format == "" {
 		// Default format
 		return map[string]interface{}{
@@ -61,9 +61,9 @@ func parseFormat(format string) (map[string]interface{}, []string, error) {
 	return properties, required, nil
 }
 
-// parseAPIResponse parses the API response and extracts the output text
+// ParseAPIResponse parses the API response and extracts the output text
 // Prefers output_text field, falls back to output[].content[].text with type "output_text"
-func parseAPIResponse(respBody []byte) (string, error) {
+func ParseAPIResponse(respBody []byte) (string, error) {
 	var apiResp struct {
 		OutputText string `json:"output_text"`
 		Output     []struct {

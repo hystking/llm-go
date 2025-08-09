@@ -1,4 +1,4 @@
-package main
+package parser
 
 import (
 	"reflect"
@@ -121,10 +121,10 @@ func TestParseFormat(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotProperties, gotRequired, err := parseFormat(tt.format)
+			gotProperties, gotRequired, err := ParseFormat(tt.format)
 
 			if (err != nil) != tt.wantErr {
-				t.Errorf("parseFormat() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("ParseFormat() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 
@@ -133,11 +133,11 @@ func TestParseFormat(t *testing.T) {
 			}
 
 			if !reflect.DeepEqual(gotProperties, tt.wantProperties) {
-				t.Errorf("parseFormat() gotProperties = %v, want %v", gotProperties, tt.wantProperties)
+				t.Errorf("ParseFormat() gotProperties = %v, want %v", gotProperties, tt.wantProperties)
 			}
 
 			if !reflect.DeepEqual(gotRequired, tt.wantRequired) {
-				t.Errorf("parseFormat() gotRequired = %v, want %v", gotRequired, tt.wantRequired)
+				t.Errorf("ParseFormat() gotRequired = %v, want %v", gotRequired, tt.wantRequired)
 			}
 		})
 	}
@@ -281,15 +281,15 @@ func TestParseAPIResponse(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := parseAPIResponse(tt.respBody)
+			got, err := ParseAPIResponse(tt.respBody)
 
 			if (err != nil) != tt.wantErr {
-				t.Errorf("parseAPIResponse() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("ParseAPIResponse() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 
 			if got != tt.want {
-				t.Errorf("parseAPIResponse() = %q, want %q", got, tt.want)
+				t.Errorf("ParseAPIResponse() = %q, want %q", got, tt.want)
 			}
 		})
 	}
