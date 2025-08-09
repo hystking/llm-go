@@ -46,7 +46,7 @@ func parseFormat(format string) (map[string]interface{}, []string, error) {
 			// Extract element type from array[element_type]
 			elementType := typeStr[6 : len(typeStr)-1] // Remove "array[" and "]"
 			elementType = strings.TrimSpace(elementType)
-			
+
 			if elementType == "" {
 				return nil, nil, fmt.Errorf("empty element type in array specification: %s", typeStr)
 			}
@@ -60,7 +60,7 @@ func parseFormat(format string) (map[string]interface{}, []string, error) {
 		} else {
 			properties[key] = map[string]interface{}{"type": typeStr}
 		}
-		
+
 		required = append(required, key)
 	}
 
@@ -215,12 +215,11 @@ func main() {
 				}
 			}
 
-			fmt.Printf(textOut)
+			fmt.Printf("%s", textOut)
 		},
 	}
 
 	rootCmd.Flags().StringVar(&model, "model", "gpt-5-nano", "model name")
-	// Empty by default to avoid sending to non-reasoning models. Set to low/medium/high to enable.
 	rootCmd.Flags().StringVar(&reasoningEffort, "reasoning_effort", "low", "reasoning effort (low/medium/high)")
 	rootCmd.Flags().StringVar(&verbosity, "verbosity", "low", "verbosity (low/medium/high)")
 	rootCmd.Flags().StringVar(&baseURL, "base-url", "https://api.openai.com/v1", "base URL for the LLM API (e.g. https://api.openai.com/v1)")
