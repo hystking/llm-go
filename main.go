@@ -13,6 +13,7 @@ import (
 )
 
 // parseFormat parses a format string like "key1:type,key2:type,..." into a JSON schema
+// Supports array types with element specifications: "key:array[element_type]"
 func parseFormat(format string) (map[string]interface{}, []string, error) {
 	if format == "" {
 		// Default format
@@ -40,7 +41,26 @@ func parseFormat(format string) (map[string]interface{}, []string, error) {
 			return nil, nil, fmt.Errorf("empty key in format pair: %s", pair)
 		}
 
-		properties[key] = map[string]interface{}{"type": typeStr}
+		// Check for array[element_type] format
+		if strings.HasPrefix(typeStr, "array[") && strings.HasSuffix(typeStr, "]") {
+			// Extract element type from array[element_type]
+			elementType := typeStr[6 : len(typeStr)-1] // Remove "array[" and "]"
+			elementType = strings.TrimSpace(elementType)
+			
+			if elementType == "" {
+				return nil, nil, fmt.Errorf("empty element type in array specification: %s", typeStr)
+			}
+
+			properties[key] = map[string]interface{}{
+				"type": "array",
+				"items": map[string]interface{}{
+					"type": elementType,
+				},
+			}
+		} else {
+			properties[key] = map[string]interface{}{"type": typeStr}
+		}
+		
 		required = append(required, key)
 	}
 
