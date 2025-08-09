@@ -1,0 +1,296 @@
+package main
+
+import (
+	"reflect"
+	"testing"
+)
+
+func TestParseFormat(t *testing.T) {
+	tests := []struct {
+		name           string
+		format         string
+		wantProperties map[string]interface{}
+		wantRequired   []string
+		wantErr        bool
+	}{
+		{
+			name:   "empty format returns default",
+			format: "",
+			wantProperties: map[string]interface{}{
+				"message": map[string]interface{}{
+					"type": "string",
+				},
+			},
+			wantRequired: []string{"message"},
+			wantErr:      false,
+		},
+		{
+			name:   "simple string field",
+			format: "name:string",
+			wantProperties: map[string]interface{}{
+				"name": map[string]interface{}{"type": "string"},
+			},
+			wantRequired: []string{"name"},
+			wantErr:      false,
+		},
+		{
+			name:   "multiple fields",
+			format: "name:string,age:integer,active:boolean",
+			wantProperties: map[string]interface{}{
+				"name":   map[string]interface{}{"type": "string"},
+				"age":    map[string]interface{}{"type": "integer"},
+				"active": map[string]interface{}{"type": "boolean"},
+			},
+			wantRequired: []string{"name", "age", "active"},
+			wantErr:      false,
+		},
+		{
+			name:   "array field",
+			format: "tags:array[string]",
+			wantProperties: map[string]interface{}{
+				"tags": map[string]interface{}{
+					"type": "array",
+					"items": map[string]interface{}{
+						"type": "string",
+					},
+				},
+			},
+			wantRequired: []string{"tags"},
+			wantErr:      false,
+		},
+		{
+			name:   "mixed fields with array",
+			format: "name:string,tags:array[string],count:integer",
+			wantProperties: map[string]interface{}{
+				"name": map[string]interface{}{"type": "string"},
+				"tags": map[string]interface{}{
+					"type": "array",
+					"items": map[string]interface{}{
+						"type": "string",
+					},
+				},
+				"count": map[string]interface{}{"type": "integer"},
+			},
+			wantRequired: []string{"name", "tags", "count"},
+			wantErr:      false,
+		},
+		{
+			name:   "array with number elements",
+			format: "scores:array[number]",
+			wantProperties: map[string]interface{}{
+				"scores": map[string]interface{}{
+					"type": "array",
+					"items": map[string]interface{}{
+						"type": "number",
+					},
+				},
+			},
+			wantRequired: []string{"scores"},
+			wantErr:      false,
+		},
+		{
+			name:    "invalid format pair",
+			format:  "invalid",
+			wantErr: true,
+		},
+		{
+			name:    "empty key",
+			format:  ":string",
+			wantErr: true,
+		},
+		{
+			name:    "empty array element type",
+			format:  "tags:array[]",
+			wantErr: true,
+		},
+		{
+			name:    "multiple colons in field",
+			format:  "name:string:string",
+			wantErr: true,
+		},
+		{
+			name:   "malformed array type treated as regular type",
+			format: "tags:array[",
+			wantProperties: map[string]interface{}{
+				"tags": map[string]interface{}{"type": "array["},
+			},
+			wantRequired: []string{"tags"},
+			wantErr:      false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotProperties, gotRequired, err := parseFormat(tt.format)
+
+			if (err != nil) != tt.wantErr {
+				t.Errorf("parseFormat() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if tt.wantErr {
+				return
+			}
+
+			if !reflect.DeepEqual(gotProperties, tt.wantProperties) {
+				t.Errorf("parseFormat() gotProperties = %v, want %v", gotProperties, tt.wantProperties)
+			}
+
+			if !reflect.DeepEqual(gotRequired, tt.wantRequired) {
+				t.Errorf("parseFormat() gotRequired = %v, want %v", gotRequired, tt.wantRequired)
+			}
+		})
+	}
+}
+
+func TestParseAPIResponse(t *testing.T) {
+	tests := []struct {
+		name     string
+		respBody []byte
+		want     string
+		wantErr  bool
+	}{
+		{
+			name: "response with output_text field",
+			respBody: []byte(`{
+				"output_text": "Hello World",
+				"output": []
+			}`),
+			want:    "Hello World",
+			wantErr: false,
+		},
+		{
+			name: "response with output array fallback",
+			respBody: []byte(`{
+				"output": [
+					{
+						"content": [
+							{
+								"type": "output_text",
+								"text": "Fallback text"
+							}
+						]
+					}
+				]
+			}`),
+			want:    "Fallback text",
+			wantErr: false,
+		},
+		{
+			name: "response with multiple content items",
+			respBody: []byte(`{
+				"output": [
+					{
+						"content": [
+							{
+								"type": "other",
+								"text": "Should ignore this"
+							},
+							{
+								"type": "output_text",
+								"text": "Should use this"
+							}
+						]
+					}
+				]
+			}`),
+			want:    "Should use this",
+			wantErr: false,
+		},
+		{
+			name: "response with both fields prefers output_text",
+			respBody: []byte(`{
+				"output_text": "Preferred text",
+				"output": [
+					{
+						"content": [
+							{
+								"type": "output_text",
+								"text": "Fallback text"
+							}
+						]
+					}
+				]
+			}`),
+			want:    "Preferred text",
+			wantErr: false,
+		},
+		{
+			name: "empty response",
+			respBody: []byte(`{
+				"output": []
+			}`),
+			want:    "",
+			wantErr: false,
+		},
+		{
+			name: "no matching content type",
+			respBody: []byte(`{
+				"output": [
+					{
+						"content": [
+							{
+								"type": "other_type",
+								"text": "Wrong type"
+							}
+						]
+					}
+				]
+			}`),
+			want:    "",
+			wantErr: false,
+		},
+		{
+			name:     "invalid JSON",
+			respBody: []byte(`invalid json`),
+			want:     "",
+			wantErr:  true,
+		},
+		{
+			name:     "empty JSON",
+			respBody: []byte(`{}`),
+			want:     "",
+			wantErr:  false,
+		},
+		{
+			name: "multiple output items",
+			respBody: []byte(`{
+				"output": [
+					{
+						"content": [
+							{
+								"type": "other",
+								"text": "Wrong type"
+							}
+						]
+					},
+					{
+						"content": [
+							{
+								"type": "output_text",
+								"text": "Found it"
+							}
+						]
+					}
+				]
+			}`),
+			want:    "Found it",
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := parseAPIResponse(tt.respBody)
+
+			if (err != nil) != tt.wantErr {
+				t.Errorf("parseAPIResponse() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if got != tt.want {
+				t.Errorf("parseAPIResponse() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
