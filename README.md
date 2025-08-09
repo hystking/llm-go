@@ -16,8 +16,7 @@ A tiny CLI that sends a message to an LLM Responses API and prints the returned 
 - `llm [flags] "your message"`
 - `echo "text" | llm`
 - Input rules:
-  - If --prompt is set: message = --prompt + stdin (or just --prompt if stdin is empty). No extra whitespace is added; include your own space or newline in --prompt if needed.
-  - Else if an argument is provided: message = argument
+  - If an argument is provided: message = argument
   - Else: message = stdin (errors if empty)
 - Output: prints the API’s output_text (or the first output[].content[] item with type="output_text") without a trailing newline
 
@@ -28,7 +27,6 @@ A tiny CLI that sends a message to an LLM Responses API and prints the returned 
 - `--base-url` (default: https://api.openai.com/v1)
 - `--instructions` string
 - `--format` string (shorthand for a JSON Schema)
-- `--prompt` string (concatenated with stdin if present)
 
 ## Output formatting (--format)
 - Shorthand: key:type pairs separated by commas
@@ -42,7 +40,6 @@ A tiny CLI that sends a message to an LLM Responses API and prints the returned 
 ## Examples
 - Basic: `llm "Hello"`
 - Pipe stdin: `echo "Hello" | llm`
-- Prompt + stdin: `echo "tea brewing" | llm --prompt "Summarize: "`
 - With instructions: `llm --instructions "Be brief." "Explain recursion"`
 - Structured JSON: `llm --format "name:string,age:integer" "Alice is a 14-year-old who is good at dancing."`
 - Arrays: `llm --format "tags:array[string]" "Give three tags for golang"`
@@ -53,10 +50,9 @@ A tiny CLI that sends a message to an LLM Responses API and prints the returned 
 ### Git commit message generation
 ```bash
 # Generate commit message from staged changes
-git diff --staged | llm\
-  --format "commit_message:string"\
-  --instructions "Follow conventional commits format. Type should be feat/fix/docs/style/refactor/test/chore."\
-  --prompt "Generate a git commit message for:\n" |\
+git diff --staged | llm \
+  --format "commit_message:string" \
+  --instructions "Follow conventional commits format. Type should be feat/fix/docs/style/refactor/test/chore. Generate a git commit message for the following changes:" | \
   jq -r .commit_message
 ```
 
