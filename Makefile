@@ -1,7 +1,7 @@
 BINARY=llm
 SRC=main.go
 
-.PHONY: all build clean
+.PHONY: all build clean install
 
 all: build
 
@@ -10,3 +10,6 @@ build:
 
 clean:
 	rm -f $(BINARY)
+
+install: build
+	mv $(BINARY) /usr/local/bin/
