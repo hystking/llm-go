@@ -11,7 +11,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-
 func main() {
 	var (
 		model           string
@@ -151,7 +150,7 @@ func main() {
 	}
 
 	rootCmd.Flags().StringVar(&model, "model", "gpt-5-nano", "model name")
-	rootCmd.Flags().StringVar(&reasoningEffort, "reasoning_effort", "low", "reasoning effort (low/medium/high)")
+	rootCmd.Flags().StringVar(&reasoningEffort, "reasoning_effort", "minimal", "reasoning effort (minimal/low/medium/high)")
 	rootCmd.Flags().StringVar(&verbosity, "verbosity", "low", "verbosity (low/medium/high)")
 	rootCmd.Flags().StringVar(&baseURL, "base-url", "https://api.openai.com/v1", "base URL for the LLM API (e.g. https://api.openai.com/v1)")
 	rootCmd.Flags().StringVar(
