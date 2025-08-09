@@ -366,17 +366,17 @@ Extract structured information from files:
 ```bash
 # Analyze a configuration file
 cat config.yaml | ./llm \
-  --format "purpose:string,potential_issues:array,security_level:string" \
+  --format "purpose:string,potential_issues:array[string],security_level:string" \
   --instructions "Analyze this configuration file and identify its purpose, key settings, and any potential issues."
 
 # Summarize source code
 cat main.go | ./llm \
-  --format "language:string,main_functionality:string,dependencies:array,complexity:string,suggestions:array" \
+  --format "language:string,main_functionality:string,dependencies:array[string],complexity:string,suggestions:array[string]" \
   --instructions "Analyze this source code file and provide a structured summary"
 
 # Document API endpoints from code
 cat api.py | ./llm \
-  --format "endpoints:array,authentication:string,data_formats:array,error_handling:string" \
+  --format "endpoints:array[string],authentication:string,data_formats:array[string],error_handling:string" \
   --instructions "Extract API documentation details from this code."
 ```
 
