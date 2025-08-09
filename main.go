@@ -59,11 +59,38 @@ func main() {
 	var baseURL string
 
 	var rootCmd = &cobra.Command{
-		Use:   "llm [flags] \"your message\"",
+		Use:   "llm [flags] [\"your message\"]",
 		Short: "Send a message to the LLM API",
-		Args:  cobra.ExactArgs(1),
+		Args:  cobra.MaximumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			message := args[0]
+			var message string
+			var err error
+
+			// Read from stdin if available
+			stdinBytes, err := io.ReadAll(os.Stdin)
+			if err != nil {
+				fmt.Println("failed to read from stdin:", err)
+				os.Exit(1)
+			}
+			stdinMessage := string(stdinBytes)
+
+			// Get message from command line argument if provided
+			var argMessage string
+			if len(args) == 1 {
+				argMessage = args[0]
+			}
+
+			// Concatenate stdin and argument if both are provided
+			if stdinMessage != "" && argMessage != "" {
+				message = stdinMessage + argMessage
+			} else if argMessage != "" {
+				message = argMessage
+			} else if stdinMessage != "" {
+				message = stdinMessage
+			} else {
+				fmt.Println("no input provided via command line argument or stdin")
+				os.Exit(1)
+			}
 
 			apiKey := os.Getenv("OPENAI_API_KEY")
 			if apiKey == "" {
