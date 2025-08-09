@@ -15,12 +15,13 @@ import (
 )
 
 var (
-	model           string
-	reasoningEffort string
-	verbosity       string
-	instructions    string
-	format          string
-	baseURL         string
+    model           string
+    reasoningEffort string
+    verbosity       string
+    instructions    string
+    format          string
+    baseURL         string
+    onlyKey         string
 )
 
 var rootCmd = &cobra.Command{
@@ -129,6 +130,35 @@ var rootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
+		// If --only is specified, attempt to parse structured JSON and print only that key
+		if strings.TrimSpace(onlyKey) != "" {
+			var obj map[string]interface{}
+			if err := json.Unmarshal([]byte(textOut), &obj); err != nil {
+				fmt.Println("--only requires structured JSON output; failed to parse JSON:", err)
+				os.Exit(1)
+			}
+			val, ok := obj[onlyKey]
+			if !ok {
+				fmt.Printf("key not found: %s\n", onlyKey)
+				os.Exit(1)
+			}
+			switch v := val.(type) {
+			case string:
+				textOut = v
+			case float64, bool, nil:
+				b, _ := json.Marshal(v)
+				textOut = string(b)
+			default:
+				// objects/arrays: print compact JSON
+				b, err := json.Marshal(v)
+				if err != nil {
+					fmt.Println("failed to encode value:", err)
+					os.Exit(1)
+				}
+				textOut = string(b)
+			}
+		}
+
 		// Ensure output ends with a single newline
 		if !strings.HasSuffix(textOut, "\n") {
 			textOut += "\n"
@@ -154,8 +184,14 @@ func init() {
 		"",
 		"output format specification (e.g., \"name:string,age:integer,active:boolean\")",
 	)
+	rootCmd.Flags().StringVar(
+		&onlyKey,
+		"only",
+		"",
+		"print only the specified top-level key from structured JSON output",
+	)
 }
 
 func Execute() error {
-	return rootCmd.Execute()
+    return rootCmd.Execute()
 }

@@ -27,6 +27,7 @@ A tiny CLI that sends a message to an LLM Responses API and prints the returned 
 - `--base-url` (default: https://api.openai.com/v1)
 - `--instructions` string
 - `--format` string (shorthand for a JSON Schema)
+- `--only` key (print only the specified top-level key from structured JSON output)
 
 ## Output formatting (--format)
 - Shorthand: key:type pairs separated by commas
@@ -42,6 +43,7 @@ A tiny CLI that sends a message to an LLM Responses API and prints the returned 
 - Pipe stdin: `echo "Hello" | llmx`
 - With instructions: `llmx --instructions "Be brief." "Explain recursion"`
 - Structured JSON: `llmx --format "name:string,age:integer" "Alice is a 14-year-old who is good at dancing."`
+- Only a key: `llmx --format "name:string,age:integer" --only name "Alice is a 14-year-old..."`
 - Arrays: `llmx --format "tags:string[]" "Give three tags for golang"`
 - Custom base URL: `llmx --base-url http://localhost:8080/v1 "ping"`
 
