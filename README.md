@@ -161,6 +161,144 @@ The CLI sends a POST to {baseURL}/responses with a payload like:
 
 The program reads output_text from the API response. If missing, it falls back to the first output[].content[] item with type == "output_text". The printed text is expected to be the JSON that matches your schema.
 
+## Response API Overview
+
+The OpenAI Responses API provides a streamlined way to generate structured outputs from language models. This API is designed for creating model responses with support for text, images, structured JSON, tool calling, and multi-turn conversations.
+
+### Endpoint
+- **POST** `https://api.openai.com/v1/responses`
+
+### Authentication
+- **Header**: `Authorization: Bearer $OPENAI_API_KEY`
+- **Content-Type**: `application/json`
+
+### Core Parameters
+
+#### Required
+- **model** (string): Model ID to use for generation
+  - Examples: `"gpt-4o"`, `"o3"`, `"gpt-4.1"`
+  - Different models have varying capabilities and performance characteristics
+
+#### Input Options (at least one required)
+- **input** (string or array): Primary input to the model
+  - Can be text, image URLs, or file references
+  - Supports multiple input types in a single request
+- **prompt** (object): Reference to a prompt template with variables
+  - Enables reusable prompt templates with parameter substitution
+
+#### System Configuration
+- **instructions** (string): System message to guide model behavior
+  - Inserted into model context, not carried over in multi-turn conversations
+- **text** (object): Configuration for text output format
+  - **format.type**: `"text"` (plain text) or `"json_schema"` (structured)
+  - **format.schema**: JSON Schema for structured outputs
+  - **format.strict**: Boolean for strict schema adherence
+
+### Conversation & State Management
+- **previous_response_id** (string): ID of previous response for multi-turn conversations
+- **store** (boolean): Whether to store response for later retrieval (default: true)
+  - Set to false for stateless usage or zero data retention
+
+### Model Behavior Controls
+- **temperature** (number, 0-2): Sampling randomness (default: 1)
+  - Higher values = more random, lower = more deterministic
+- **top_p** (number, 0-1): Nucleus sampling probability mass (default: 1)
+  - Alternative to temperature sampling
+- **max_output_tokens** (integer): Upper bound for generated tokens
+  - Includes both visible output and reasoning tokens
+- **verbosity** (string): Response verbosity level
+  - Options: `"low"`, `"medium"`, `"high"`
+- **truncation** (string): Context window handling
+  - `"auto"`: Automatic truncation if context exceeds limit
+  - `"disabled"`: Fail with 400 error if context too large
+
+### Tool Integration
+- **tools** (array): Available tools for the model
+  - **Built-in tools**: Web search, file search, code interpreter
+  - **Custom functions**: User-defined functions with typed parameters
+- **tool_choice** (string or object): Tool selection strategy
+  - `"auto"`: Model chooses when to use tools
+  - `"required"`: Force tool usage
+  - Specific tool selection possible
+- **parallel_tool_calls** (boolean): Allow concurrent tool execution (default: true)
+- **max_tool_calls** (integer): Maximum total tool calls per response
+
+### Reasoning Models (o-series)
+- **reasoning** (object): Configuration for reasoning-capable models
+  - **effort** (string): `"low"`, `"medium"`, `"high"`
+  - Controls depth of reasoning process
+
+### Advanced Features
+- **background** (boolean): Run response asynchronously
+- **stream** (boolean): Enable server-sent events streaming
+- **stream_options** (object): Streaming configuration
+- **include** (array): Additional data to include in response
+  - `"code_interpreter_call.outputs"`: Python execution results
+  - `"file_search_call.results"`: Search results details
+  - `"message.output_text.logprobs"`: Token log probabilities
+  - `"reasoning.encrypted_content"`: Encrypted reasoning tokens
+
+### Quality & Safety
+- **safety_identifier** (string): User identifier for policy violation detection
+- **service_tier** (string): Processing tier selection
+  - `"auto"`: Use project default
+  - `"default"`: Standard processing
+  - `"flex"` or `"priority"`: Enhanced processing tiers
+- **metadata** (map): Key-value pairs for request tracking
+  - Up to 16 pairs, keys ≤64 chars, values ≤512 chars
+
+### Response Structure
+
+The API returns a Response object with:
+
+```json
+{
+  "id": "resp_...",
+  "object": "response",
+  "created_at": 1234567890,
+  "status": "completed|in_progress|failed",
+  "model": "gpt-4o-2024-08-06",
+  "output": [
+    {
+      "type": "message",
+      "role": "assistant", 
+      "content": [
+        {
+          "type": "output_text",
+          "text": "Generated response text",
+          "annotations": []
+        }
+      ]
+    }
+  ],
+  "usage": {
+    "input_tokens": 36,
+    "output_tokens": 87,
+    "total_tokens": 123,
+    "input_tokens_details": { "cached_tokens": 0 },
+    "output_tokens_details": { "reasoning_tokens": 0 }
+  },
+  "reasoning": {
+    "effort": "low",
+    "summary": "Brief reasoning explanation"
+  }
+}
+```
+
+### Error Handling
+- **401 Unauthorized**: Invalid API key
+- **400 Bad Request**: Invalid parameters or model limitations
+- **404 Not Found**: Endpoint not implemented by provider
+- **429 Too Many Requests**: Rate limit exceeded
+- **500 Internal Server Error**: Provider-side issues
+
+### Use Cases
+- **Structured Data Extraction**: Use JSON Schema format for consistent outputs
+- **Multi-turn Conversations**: Chain responses with `previous_response_id`
+- **Tool-augmented Generation**: Combine LLM reasoning with external data/APIs
+- **Background Processing**: Handle long-running generations asynchronously
+- **Streaming Applications**: Real-time response generation with SSE
+
 Tip: The CLI does not append a newline; add one yourself or pipe to tools like jq.
 
 

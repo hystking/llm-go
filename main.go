@@ -96,11 +96,11 @@ func main() {
 							"additionalProperties": false,
 						},
 					},
+					"verbosity": verbosity,
 				},
 				"reasoning": map[string]interface{}{
 					"effort": reasoningEffort,
 				},
-				// "verbosity": verbosity,
 			}
 
 			body, err := json.Marshal(payload)
