@@ -21,25 +21,36 @@ func ParseFormat(format string) (map[string]interface{}, []string, error) {
 	properties := make(map[string]interface{})
 	var required []string
 
-	pairs := strings.Split(format, ",")
-	for _, pair := range pairs {
-		parts := strings.Split(strings.TrimSpace(pair), ":")
-		if len(parts) != 2 {
-			return nil, nil, fmt.Errorf("invalid format pair: %s", pair)
-		}
+    pairs := strings.Split(format, ",")
+    for _, pair := range pairs {
+        trimmed := strings.TrimSpace(pair)
+        if trimmed == "" {
+            return nil, nil, fmt.Errorf("invalid format pair: %s", pair)
+        }
 
-		key := strings.TrimSpace(parts[0])
-		typeStr := strings.TrimSpace(parts[1])
+        parts := strings.SplitN(trimmed, ":", 2)
+        key := strings.TrimSpace(parts[0])
+        // default type to string when omitted or empty (e.g., "name" or "name:")
+        typeStr := "string"
+        if len(parts) == 2 {
+            // if extra colon remains in type portion, treat as error (e.g., name:string:string)
+            if strings.Contains(parts[1], ":") {
+                return nil, nil, fmt.Errorf("invalid format pair: %s", pair)
+            }
+            if ts := strings.TrimSpace(parts[1]); ts != "" {
+                typeStr = ts
+            }
+        }
 
 		if key == "" {
 			return nil, nil, fmt.Errorf("empty key in format pair: %s", pair)
 		}
 
 		// Check for array[element_type] format
-		if strings.HasPrefix(typeStr, "array[") && strings.HasSuffix(typeStr, "]") {
-			// Extract element type from array[element_type]
-			elementType := typeStr[6 : len(typeStr)-1] // Remove "array[" and "]"
-			elementType = strings.TrimSpace(elementType)
+        if strings.HasPrefix(typeStr, "array[") && strings.HasSuffix(typeStr, "]") {
+            // Extract element type from array[element_type]
+            elementType := typeStr[6 : len(typeStr)-1] // Remove "array[" and "]"
+            elementType = strings.TrimSpace(elementType)
 
 			if elementType == "" {
 				return nil, nil, fmt.Errorf("empty element type in array specification: %s", typeStr)

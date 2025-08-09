@@ -6,13 +6,13 @@ import (
 )
 
 func TestParseFormat(t *testing.T) {
-	tests := []struct {
-		name           string
-		format         string
-		wantProperties map[string]interface{}
-		wantRequired   []string
-		wantErr        bool
-	}{
+		tests := []struct {
+			name           string
+			format         string
+			wantProperties map[string]interface{}
+			wantRequired   []string
+			wantErr        bool
+		}{
 		{
 			name:   "empty format returns default",
 			format: "",
@@ -89,9 +89,13 @@ func TestParseFormat(t *testing.T) {
 			wantErr:      false,
 		},
 		{
-			name:    "invalid format pair",
-			format:  "invalid",
-			wantErr: true,
+			name:   "omitted type defaults to string",
+			format: "invalid",
+			wantProperties: map[string]interface{}{
+				"invalid": map[string]interface{}{"type": "string"},
+			},
+			wantRequired: []string{"invalid"},
+			wantErr:      false,
 		},
 		{
 			name:    "empty key",
@@ -107,6 +111,24 @@ func TestParseFormat(t *testing.T) {
 			name:    "multiple colons in field",
 			format:  "name:string:string",
 			wantErr: true,
+		},
+		{
+			name:   "key only becomes string",
+			format: "name",
+			wantProperties: map[string]interface{}{
+				"name": map[string]interface{}{"type": "string"},
+			},
+			wantRequired: []string{"name"},
+			wantErr:      false,
+		},
+		{
+			name:   "trailing colon becomes string",
+			format: "name:",
+			wantProperties: map[string]interface{}{
+				"name": map[string]interface{}{"type": "string"},
+			},
+			wantRequired: []string{"name"},
+			wantErr:      false,
 		},
 		{
 			name:   "malformed array type treated as regular type",
