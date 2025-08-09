@@ -48,6 +48,30 @@ A tiny CLI that sends a message to an LLM Responses API and prints the returned 
 - Arrays: `llm --format "tags:array[string]" "Give three tags for golang"`
 - Custom base URL: `llm --base-url http://localhost:8080/v1 "ping"`
 
+## Advanced Examples
+
+### Git commit message generation
+```bash
+# Generate commit message from staged changes
+git diff --staged | llm\
+  --format "commit_message:string"\
+  --instructions "Follow conventional commits format. Type should be feat/fix/docs/style/refactor/test/chore."\
+  --prompt "Generate a git commit message for:\n" |\
+  jq -r .commit_message
+```
+
+### Log file analysis
+```bash
+# Analyze error logs
+cat error.log | llm "Summarize the main issues and suggest solutions.\n" --format "issues:array[string],suggest_solutions:array[string]"
+```
+
+### Natural language to commands
+```bash
+# Convert description to shell command
+llm "How do I find all .go files modified in the last 7 days?" --format "command:string,explanation:string"
+```
+
 ## Behavior and errors
 - Non-2xx responses: prints the body and exits with code 1
 - Missing OPENAI_API_KEY or invalid --format: exits with code 1
