@@ -46,25 +46,28 @@ func ParseFormat(format string) (map[string]interface{}, []string, error) {
 			return nil, nil, fmt.Errorf("empty key in format pair: %s", pair)
 		}
 
-		// Check for array[element_type] format
-        if strings.HasPrefix(typeStr, "array[") && strings.HasSuffix(typeStr, "]") {
-            // Extract element type from array[element_type]
-            elementType := typeStr[6 : len(typeStr)-1] // Remove "array[" and "]"
-            elementType = strings.TrimSpace(elementType)
+        // Only support type[] style arrays (e.g., string[])
+        if strings.HasSuffix(typeStr, "[]") {
+            elementType := strings.TrimSpace(strings.TrimSuffix(typeStr, "[]"))
+            if elementType == "" {
+                return nil, nil, fmt.Errorf("empty element type in array specification: %s", typeStr)
+            }
+            if strings.HasSuffix(elementType, "[]") {
+                return nil, nil, fmt.Errorf("nested array types are not supported: %s", typeStr)
+            }
 
-			if elementType == "" {
-				return nil, nil, fmt.Errorf("empty element type in array specification: %s", typeStr)
-			}
-
-			properties[key] = map[string]interface{}{
-				"type": "array",
-				"items": map[string]interface{}{
-					"type": elementType,
-				},
-			}
-		} else {
-			properties[key] = map[string]interface{}{"type": typeStr}
-		}
+            properties[key] = map[string]interface{}{
+                "type": "array",
+                "items": map[string]interface{}{
+                    "type": elementType,
+                },
+            }
+        } else if strings.HasPrefix(typeStr, "array[") {
+            // legacy style no longer supported
+            return nil, nil, fmt.Errorf("invalid array specification: use type[] syntax, got %s", typeStr)
+        } else {
+            properties[key] = map[string]interface{}{"type": typeStr}
+        }
 
 		required = append(required, key)
 	}

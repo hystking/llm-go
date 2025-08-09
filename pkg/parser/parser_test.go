@@ -44,50 +44,50 @@ func TestParseFormat(t *testing.T) {
 			wantRequired: []string{"name", "age", "active"},
 			wantErr:      false,
 		},
-		{
-			name:   "array field",
-			format: "tags:array[string]",
-			wantProperties: map[string]interface{}{
-				"tags": map[string]interface{}{
-					"type": "array",
-					"items": map[string]interface{}{
-						"type": "string",
-					},
-				},
-			},
-			wantRequired: []string{"tags"},
-			wantErr:      false,
-		},
-		{
-			name:   "mixed fields with array",
-			format: "name:string,tags:array[string],count:integer",
-			wantProperties: map[string]interface{}{
-				"name": map[string]interface{}{"type": "string"},
-				"tags": map[string]interface{}{
-					"type": "array",
-					"items": map[string]interface{}{
-						"type": "string",
-					},
-				},
-				"count": map[string]interface{}{"type": "integer"},
-			},
-			wantRequired: []string{"name", "tags", "count"},
-			wantErr:      false,
-		},
-		{
-			name:   "array with number elements",
-			format: "scores:array[number]",
-			wantProperties: map[string]interface{}{
-				"scores": map[string]interface{}{
-					"type": "array",
-					"items": map[string]interface{}{
-						"type": "number",
-					},
-				},
-			},
-			wantRequired: []string{"scores"},
-			wantErr:      false,
-		},
+    {
+        name:   "array field",
+        format: "tags:string[]",
+        wantProperties: map[string]interface{}{
+            "tags": map[string]interface{}{
+                "type": "array",
+                "items": map[string]interface{}{
+                    "type": "string",
+                },
+            },
+        },
+        wantRequired: []string{"tags"},
+        wantErr:      false,
+    },
+    {
+        name:   "mixed fields with array",
+        format: "name:string,tags:string[],count:integer",
+        wantProperties: map[string]interface{}{
+            "name": map[string]interface{}{"type": "string"},
+            "tags": map[string]interface{}{
+                "type": "array",
+                "items": map[string]interface{}{
+                    "type": "string",
+                },
+            },
+            "count": map[string]interface{}{"type": "integer"},
+        },
+        wantRequired: []string{"name", "tags", "count"},
+        wantErr:      false,
+    },
+    {
+        name:   "array with number elements",
+        format: "scores:number[]",
+        wantProperties: map[string]interface{}{
+            "scores": map[string]interface{}{
+                "type": "array",
+                "items": map[string]interface{}{
+                    "type": "number",
+                },
+            },
+        },
+        wantRequired: []string{"scores"},
+        wantErr:      false,
+    },
 		{
 			name:   "omitted type defaults to string",
 			format: "invalid",
@@ -102,11 +102,11 @@ func TestParseFormat(t *testing.T) {
 			format:  ":string",
 			wantErr: true,
 		},
-		{
-			name:    "empty array element type",
-			format:  "tags:array[]",
-			wantErr: true,
-		},
+    {
+        name:    "nested type[] arrays not supported",
+        format:  "tags:string[][]",
+        wantErr: true,
+    },
 		{
 			name:    "multiple colons in field",
 			format:  "name:string:string",
@@ -130,15 +130,16 @@ func TestParseFormat(t *testing.T) {
 			wantRequired: []string{"name"},
 			wantErr:      false,
 		},
-		{
-			name:   "malformed array type treated as regular type",
-			format: "tags:array[",
-			wantProperties: map[string]interface{}{
-				"tags": map[string]interface{}{"type": "array["},
-			},
-			wantRequired: []string{"tags"},
-			wantErr:      false,
-		},
+    {
+        name:   "legacy array notation rejected",
+        format: "tags:array[string]",
+        wantErr: true,
+    },
+    {
+        name:  "empty element type in array[]",
+        format: "tags:[]",
+        wantErr: true,
+    },
 	}
 
 	for _, tt := range tests {

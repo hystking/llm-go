@@ -31,18 +31,18 @@ A tiny CLI that sends a message to an LLM Responses API and prints the returned 
 ## Output formatting (--format)
 - Shorthand: key:type pairs separated by commas
   - Example: name:string,age:integer,active:boolean
-- Arrays: key:array[element_type]
-  - Example: tags:array[string], scores:array[number]
+- Arrays: key:element_type[] (type[] style)
+  - Example: tags:string[], scores:number[]
 - If omitted, a default schema with a single required field message:string is used
 - All fields are required and additionalProperties=false
-- Limitations: no nesting; element_type is required for arrays; invalid pairs (e.g., :string, tags:array[], name:string:string) cause an error
+- Limitations: no nesting (e.g., string[][] not supported); invalid pairs (e.g., :string, tags:[], name:string:string) cause an error
 
 ## Examples
 - Basic: `llmx "Hello"`
 - Pipe stdin: `echo "Hello" | llmx`
 - With instructions: `llmx --instructions "Be brief." "Explain recursion"`
 - Structured JSON: `llmx --format "name:string,age:integer" "Alice is a 14-year-old who is good at dancing."`
-- Arrays: `llmx --format "tags:array[string]" "Give three tags for golang"`
+- Arrays: `llmx --format "tags:string[]" "Give three tags for golang"`
 - Custom base URL: `llmx --base-url http://localhost:8080/v1 "ping"`
 
 ## Advanced Examples
@@ -59,7 +59,7 @@ git diff --staged | llmx \
 ### Log file analysis
 ```bash
 # Analyze error logs
-cat error.log | llmx "Summarize the main issues and suggest solutions.\n" --format "issues:array[string],suggest_solutions:array[string]"
+cat error.log | llmx "Summarize the main issues and suggest solutions.\n" --format "issues:string[],suggest_solutions:string[]"
 ```
 
 ### Natural language to commands
