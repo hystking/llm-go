@@ -1,5 +1,5 @@
 BINARY=llm
-SRC=main.go
+SRC=main.go parser.go
 
 .PHONY: all build clean install
 
