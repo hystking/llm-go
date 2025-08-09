@@ -14,6 +14,7 @@ Great for:
 - All declared fields are required; no additional properties allowed
 - Simple format string: "key:type,key:type,..."
 - Optional instructions and reasoning effort
+- Flexible input methods: command line args, stdin, or combined with --prompt
 - Configurable base URL (default https://api.openai.com/v1)
 
 
@@ -53,6 +54,25 @@ Pipe to jq:
 
 ```bash
 ./llm "Give me a one-liner" | jq -r .message
+```
+
+## Input methods
+The CLI supports three input methods:
+
+1. **Command line argument only** (default behavior):
+```bash
+./llm "Your message here"
+```
+
+2. **Stdin only** (when no argument is provided):
+```bash
+echo "Your message here" | ./llm
+```
+
+3. **Combined prompt and stdin** (using `--prompt` flag):
+```bash
+echo "user data" | ./llm --prompt "Analyze this data: "
+# The model receives: "Analyze this data: user data"
 ```
 
 
@@ -138,6 +158,7 @@ Flags:
   --base-url string           Base URL for the LLM API (default "https://api.openai.com/v1")
   --instructions string       Instructions to guide the model
   --format string             Output format like: "name:string,age:integer,active:boolean"
+  --prompt string             Prompt text that can be combined with stdin input
   -h, --help                  Help for llm
 ```
 
@@ -320,19 +341,17 @@ Tip: The CLI does not append a newline; add one yourself or pipe to tools like j
 Use structured output to generate commit messages automatically:
 
 ```bash
-# Generate a structured commit message
+# Using --prompt to combine instruction with diff data
 git diff --staged | ./llm \
   --format "commit_message:string" \
   --instructions "Write a concise conventional commit message." \
-  "Generate a commit message for these changes:\n" | jq -r .commit_message
-
-# Output: {"type":"feat","scope":"auth","description":"add user authentication system","body":"Implement JWT-based authentication with login and logout endpoints"}
+  --prompt "Generate a commit message for these changes:\n" | jq -r .commit_message
 
 # Use in a script to create commits
 COMMIT_MSG=$(git diff --staged | ./llm \
   --format "commit_message:string" \
   --instructions "Follow conventional commits format. Type should be feat/fix/docs/style/refactor/test/chore." \
-  "Generate a commit message for these changes:\n" | jq -r .commit_message)
+  --prompt "Generate a commit message for these changes:\n" | jq -r .commit_message)
 git commit -m "$COMMIT_MSG"
 ```
 
@@ -361,23 +380,31 @@ fi
 ```
 
 ### Analyze and explain file contents
-Extract structured information from files:
+Extract structured information from files using --prompt:
 
 ```bash
 # Analyze a configuration file
 cat config.yaml | ./llm \
   --format "purpose:string,potential_issues:array[string],security_level:string" \
-  --instructions "Analyze this configuration file and identify its purpose, key settings, and any potential issues."
+  --instructions "Analyze this configuration file and identify its purpose, key settings, and any potential issues." \
+  --prompt "Configuration file content:\n"
 
 # Summarize source code
 cat main.go | ./llm \
   --format "language:string,main_functionality:string,dependencies:array[string],complexity:string,suggestions:array[string]" \
-  --instructions "Analyze this source code file and provide a structured summary"
+  --instructions "Analyze this source code file and provide a structured summary" \
+  --prompt "Source code to analyze:\n"
 
 # Document API endpoints from code
 cat api.py | ./llm \
   --format "endpoints:array[string],authentication:string,data_formats:array[string],error_handling:string" \
-  --instructions "Extract API documentation details from this code."
+  --instructions "Extract API documentation details from this code." \
+  --prompt "Python API code:\n"
+
+# Process log files for error analysis
+cat error.log | ./llm \
+  --format "error_types:array[string],critical_errors:array[string],recommendations:array[string]" \
+  --prompt "Analyze these log entries for errors and patterns:\n"
 ```
 
 

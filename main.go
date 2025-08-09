@@ -74,6 +74,7 @@ func main() {
 		verbosity       string
 		instructions    string
 		format          string
+		prompt          string
 	)
 
 	var baseURL string
@@ -84,32 +85,41 @@ func main() {
 		Args:  cobra.MaximumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			var message string
-			var err error
 
-			// Read from stdin if available
-			stdinBytes, err := io.ReadAll(os.Stdin)
-			if err != nil {
-				fmt.Println("failed to read from stdin:", err)
-				os.Exit(1)
-			}
-			stdinMessage := string(stdinBytes)
+			if prompt != "" {
+				// When --prompt is specified, use it and optionally combine with stdin
+				stdinBytes, err := io.ReadAll(os.Stdin)
+				if err != nil {
+					fmt.Println("failed to read from stdin:", err)
+					os.Exit(1)
+				}
+				stdinMessage := string(stdinBytes)
 
-			// Get message from command line argument if provided
-			var argMessage string
-			if len(args) == 1 {
-				argMessage = args[0]
-			}
-
-			// Concatenate stdin and argument if both are provided
-			if stdinMessage != "" && argMessage != "" {
-				message = stdinMessage + argMessage
-			} else if argMessage != "" {
-				message = argMessage
-			} else if stdinMessage != "" {
-				message = stdinMessage
+				if stdinMessage != "" {
+					message = prompt + stdinMessage
+				} else {
+					message = prompt
+				}
 			} else {
-				fmt.Println("no input provided via command line argument or stdin")
-				os.Exit(1)
+				// Get message from command line argument if provided
+				if len(args) == 1 {
+					message = args[0]
+				} else {
+					// Read from stdin only if no command line argument
+					stdinBytes, err := io.ReadAll(os.Stdin)
+					if err != nil {
+						fmt.Println("failed to read from stdin:", err)
+						os.Exit(1)
+					}
+					stdinMessage := string(stdinBytes)
+
+					if stdinMessage != "" {
+						message = stdinMessage
+					} else {
+						fmt.Println("no input provided via command line argument or stdin")
+						os.Exit(1)
+					}
+				}
 			}
 
 			apiKey := os.Getenv("OPENAI_API_KEY")
@@ -234,6 +244,12 @@ func main() {
 		"format",
 		"",
 		"output format specification (e.g., \"name:string,age:integer,active:boolean\")",
+	)
+	rootCmd.Flags().StringVar(
+		&prompt,
+		"prompt",
+		"",
+		"prompt text that can be combined with stdin input",
 	)
 
 	if err := rootCmd.Execute(); err != nil {
