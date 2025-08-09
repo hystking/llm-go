@@ -66,6 +66,15 @@ You can require specific keys and types by passing a simple format string:
 # => {"name":"Alice","age":42,"active":true}
 ```
 
+Array types with element specifications:
+
+```bash
+./llm \
+  --format "dependencies:array[string],complexity:string,suggestions:array[string]" \
+  "Analyze this Go project and list its dependencies, complexity, and suggestions"
+# => {"dependencies":["github.com/spf13/cobra"],"complexity":"low","suggestions":["add tests","improve error handling"]}
+```
+
 Notes on format:
 - Use comma-separated pairs: key:type
 - All provided keys become required
@@ -73,7 +82,10 @@ Notes on format:
 - Keys cannot contain commas or colons
 - Type strings are placed directly into the JSON Schema. Common types include:
   - string, integer, number, boolean, array, object
-  - For array/object, no nested item/property schema is generated (the CLI currently supports only a flat object with primitive type constraints)
+- Arrays with specific element types are supported using `array[element_type]` syntax:
+  - `dependencies:array[string]` creates an array of strings
+  - `scores:array[number]` creates an array of numbers
+  - `flags:array[boolean]` creates an array of booleans
 
 If you omit --format, the tool uses a default schema:
 
@@ -300,6 +312,73 @@ The API returns a Response object with:
 - **Streaming Applications**: Real-time response generation with SSE
 
 Tip: The CLI does not append a newline; add one yourself or pipe to tools like jq.
+
+
+## Advanced Usage Examples
+
+### Generate commit messages from git diff
+Use structured output to generate commit messages automatically:
+
+```bash
+# Generate a structured commit message
+git diff --staged | ./llm \
+  --format "commit_message:string" \
+  --instructions "Write a concise conventional commit message." \
+  "Generate a commit message for these changes:\n" | jq -r .commit_message
+
+# Output: {"type":"feat","scope":"auth","description":"add user authentication system","body":"Implement JWT-based authentication with login and logout endpoints"}
+
+# Use in a script to create commits
+COMMIT_MSG=$(git diff --staged | ./llm \
+  --format "commit_message:string" \
+  --instructions "Follow conventional commits format. Type should be feat/fix/docs/style/refactor/test/chore." \
+  "Generate a commit message for these changes:\n" | jq -r .commit_message)
+git commit -m "$COMMIT_MSG"
+```
+
+### Convert natural language to shell commands
+Transform plain English requests into executable commands:
+
+```bash
+# Generate a command with explanation
+./llm \
+  --format "command:string,explanation:string,warning:string" \
+  "I want to find all JavaScript files larger than 1MB in the current directory and subdirectories"
+
+# Output: {"command":"find . -name '*.js' -size +1M","explanation":"Searches current directory recursively for .js files larger than 1MB","warning":"This command will traverse all subdirectories"}
+
+# Interactive command generation and execution
+CMD_INFO=$(./llm \
+  --format "command:string,safe:boolean,explanation:string" \
+  "Delete all log files older than 7 days in /var/log")
+echo "Command: $(echo $CMD_INFO | jq -r .command)"
+echo "Safe: $(echo $CMD_INFO | jq -r .safe)"
+echo "Explanation: $(echo $CMD_INFO | jq -r .explanation)"
+read -p "Execute? (y/n) " -n 1 -r
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+  eval $(echo $CMD_INFO | jq -r .command)
+fi
+```
+
+### Analyze and explain file contents
+Extract structured information from files:
+
+```bash
+# Analyze a configuration file
+cat config.yaml | ./llm \
+  --format "purpose:string,potential_issues:array,security_level:string" \
+  --instructions "Analyze this configuration file and identify its purpose, key settings, and any potential issues."
+
+# Summarize source code
+cat main.go | ./llm \
+  --format "language:string,main_functionality:string,dependencies:array,complexity:string,suggestions:array" \
+  --instructions "Analyze this source code file and provide a structured summary"
+
+# Document API endpoints from code
+cat api.py | ./llm \
+  --format "endpoints:array,authentication:string,data_formats:array,error_handling:string" \
+  --instructions "Extract API documentation details from this code."
+```
 
 
 ## Troubleshooting
