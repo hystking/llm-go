@@ -7,9 +7,11 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
+
+	"llmx/pkg/parser"
 
 	"github.com/spf13/cobra"
-	"llmx/pkg/parser"
 )
 
 var (
@@ -127,7 +129,11 @@ var rootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		fmt.Printf("%s", textOut)
+		// Ensure output ends with a single newline
+		if !strings.HasSuffix(textOut, "\n") {
+			textOut += "\n"
+		}
+		fmt.Print(textOut)
 	},
 }
 
