@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -10,6 +9,7 @@ import (
 	"strings"
 
 	"llmx/pkg/parser"
+	"llmx/pkg/provider"
 	"llmx/pkg/version"
 
 	"github.com/spf13/cobra"
@@ -23,6 +23,7 @@ var (
 	format          string
 	baseURL         string
 	onlyKey         string
+	providerName    string
 )
 
 var rootCmd = &cobra.Command{
@@ -61,64 +62,44 @@ var rootCmd = &cobra.Command{
 			message = string(stdinBytes)
 		}
 
-		apiKey := os.Getenv("OPENAI_API_KEY")
-		if apiKey == "" {
-			fmt.Println("OPENAI_API_KEY is not set")
+		// Select provider
+		prov, err := provider.New(providerName)
+		if err != nil {
+			fmt.Println(err)
 			os.Exit(1)
 		}
 
-		// Build payload per Responses API
-		// When --format is omitted, do NOT enforce a schema.
-		textPayload := map[string]interface{}{
-			"verbosity": verbosity,
-		}
-
+		// Build properties on CLI side if --format is specified
+		var properties map[string]interface{}
 		if strings.TrimSpace(format) != "" {
-			// Parse format string to generate JSON schema
-			properties, required, err := parser.ParseFormat(format)
+			props, err := parser.ParseFormat(format)
 			if err != nil {
 				fmt.Printf("failed to parse format: %v\n", err)
 				os.Exit(1)
 			}
-
-			textPayload["format"] = map[string]interface{}{
-				"type":   "json_schema",
-				"name":   "response",
-				"strict": true,
-				"schema": map[string]interface{}{
-					"type":                 "object",
-					"properties":           properties,
-					"required":             required,
-					"additionalProperties": false,
-				},
-			}
+			properties = props
 		}
 
-		payload := map[string]interface{}{
-			"model":        model,
-			"instructions": instructions,
-			"input":        message,
-			"store":        false,
-			"text":         textPayload,
-			"reasoning": map[string]interface{}{
-				"effort": reasoningEffort,
-			},
-		}
-
-		body, err := json.Marshal(payload)
+		// Build provider payload
+		payload, err := prov.BuildAPIPayload(provider.Options{
+			Model:           model,
+			Instructions:    instructions,
+			Message:         message,
+			Verbosity:       verbosity,
+			ReasoningEffort: reasoningEffort,
+			Properties:      properties,
+		})
 		if err != nil {
-			fmt.Println("failed to encode payload:", err)
+			fmt.Println(err)
 			os.Exit(1)
 		}
 
-		req, err := http.NewRequest("POST", baseURL+"/responses", bytes.NewReader(body))
+		// Build request (API key resolved in provider if omitted here)
+		req, err := prov.BuildAPIRequest(payload, baseURL, provider.RequestOptions{})
 		if err != nil {
-			fmt.Println("failed to create request:", err)
+			fmt.Println(err)
 			os.Exit(1)
 		}
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Accept", "application/json")
-		req.Header.Set("Authorization", "Bearer "+apiKey)
 
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
@@ -139,8 +120,8 @@ var rootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		// Parse API response to extract text output
-		textOut, err := parser.ParseAPIResponse(respBody)
+		// Parse API response to extract text output (provider-specific)
+		textOut, err := prov.ParseAPIResponse(respBody)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
@@ -192,6 +173,7 @@ func init() {
 	rootCmd.Flags().StringVar(&reasoningEffort, "reasoning_effort", "minimal", "reasoning effort (minimal/low/medium/high)")
 	rootCmd.Flags().StringVar(&verbosity, "verbosity", "low", "verbosity (low/medium/high)")
 	rootCmd.Flags().StringVar(&baseURL, "base-url", "https://api.openai.com/v1", "base URL for the LLM API (e.g. https://api.openai.com/v1)")
+	rootCmd.Flags().StringVar(&providerName, "provider", "openai", "LLM provider name (e.g., openai)")
 	rootCmd.Flags().StringVar(
 		&instructions,
 		"instructions",
