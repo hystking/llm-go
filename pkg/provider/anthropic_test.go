@@ -1,6 +1,11 @@
 package provider
 
-import "testing"
+import (
+	"encoding/json"
+	"io"
+	"net/http"
+	"testing"
+)
 
 func TestAnthropicProvider_ParseAPIResponse(t *testing.T) {
 	p := &AnthropicProvider{}
@@ -41,5 +46,62 @@ func TestAnthropicProvider_ParseAPIResponse(t *testing.T) {
 				t.Fatalf("got %q, want %q", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestAnthropicProvider_BuildAPIPayload_Defaults(t *testing.T) {
+	p := &AnthropicProvider{}
+	// Empty model should fallback to haiku-latest and default max_tokens for that family
+	payload, err := p.BuildAPIPayload(Options{Model: "", Message: "Hello", Instructions: "sys"})
+	if err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	if payload["model"] != "claude-3-5-haiku-latest" {
+		t.Fatalf("model fallback mismatch: %v", payload["model"])
+	}
+	if payload["max_tokens"] != 8192 {
+		t.Fatalf("max_tokens default mismatch: %v", payload["max_tokens"])
+	}
+	msgs, ok := payload["messages"].([]map[string]interface{})
+	if !ok || len(msgs) != 1 {
+		t.Fatalf("messages wrong type/len: %T %v", payload["messages"], payload["messages"])
+	}
+	if msgs[0]["role"] != "user" || msgs[0]["content"] != "Hello" {
+		t.Fatalf("message content mismatch: %v", msgs[0])
+	}
+	if payload["system"] != "sys" {
+		t.Fatalf("system mismatch: %v", payload["system"])
+	}
+}
+
+func TestAnthropicProvider_BuildAPIRequest_DefaultsAndHeaders(t *testing.T) {
+	p := &AnthropicProvider{}
+	payload := map[string]interface{}{"model": "claude-3-5-haiku-latest", "messages": []map[string]interface{}{}}
+	req, err := p.BuildAPIRequest(payload, "", RequestOptions{APIKey: "anth-key"})
+	if err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	if req.Method != http.MethodPost {
+		t.Fatalf("method mismatch: %s", req.Method)
+	}
+	if req.URL.String() != "https://api.anthropic.com/v1/messages" {
+		t.Fatalf("url mismatch: %s", req.URL.String())
+	}
+	if req.Header.Get("x-api-key") != "anth-key" {
+		t.Fatalf("api key header mismatch: %s", req.Header.Get("x-api-key"))
+	}
+	if req.Header.Get("anthropic-version") == "" {
+		t.Fatalf("anthropic-version header missing")
+	}
+	if req.Header.Get("Content-Type") != "application/json" || req.Header.Get("Accept") != "application/json" {
+		t.Fatalf("content headers mismatch")
+	}
+	b, _ := io.ReadAll(req.Body)
+	var got map[string]interface{}
+	if err := json.Unmarshal(b, &got); err != nil {
+		t.Fatalf("invalid body json: %v", err)
+	}
+	if got["model"] != "claude-3-5-haiku-latest" {
+		t.Fatalf("body model mismatch: %v", got["model"])
 	}
 }
