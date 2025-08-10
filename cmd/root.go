@@ -15,13 +15,13 @@ import (
 )
 
 var (
-    model           string
-    reasoningEffort string
-    verbosity       string
-    instructions    string
-    format          string
-    baseURL         string
-    onlyKey         string
+	model           string
+	reasoningEffort string
+	verbosity       string
+	instructions    string
+	format          string
+	baseURL         string
+	onlyKey         string
 )
 
 var rootCmd = &cobra.Command{
@@ -57,33 +57,39 @@ var rootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		// Parse format string to generate JSON schema
-		properties, required, err := parser.ParseFormat(format)
-		if err != nil {
-			fmt.Printf("failed to parse format: %v\n", err)
-			os.Exit(1)
+		// Build payload per Responses API
+		// When --format is omitted, do NOT enforce a schema.
+		textPayload := map[string]interface{}{
+			"verbosity": verbosity,
 		}
 
-		// Build payload per Responses API
+		if strings.TrimSpace(format) != "" {
+			// Parse format string to generate JSON schema
+			properties, required, err := parser.ParseFormat(format)
+			if err != nil {
+				fmt.Printf("failed to parse format: %v\n", err)
+				os.Exit(1)
+			}
+
+			textPayload["format"] = map[string]interface{}{
+				"type":   "json_schema",
+				"name":   "response",
+				"strict": true,
+				"schema": map[string]interface{}{
+					"type":                 "object",
+					"properties":           properties,
+					"required":             required,
+					"additionalProperties": false,
+				},
+			}
+		}
+
 		payload := map[string]interface{}{
 			"model":        model,
 			"instructions": instructions,
 			"input":        message,
 			"store":        false,
-			"text": map[string]interface{}{
-				"format": map[string]interface{}{
-					"type":   "json_schema",
-					"name":   "response",
-					"strict": true,
-					"schema": map[string]interface{}{
-						"type":                 "object",
-						"properties":           properties,
-						"required":             required,
-						"additionalProperties": false,
-					},
-				},
-				"verbosity": verbosity,
-			},
+			"text":         textPayload,
 			"reasoning": map[string]interface{}{
 				"effort": reasoningEffort,
 			},
@@ -193,5 +199,5 @@ func init() {
 }
 
 func Execute() error {
-    return rootCmd.Execute()
+	return rootCmd.Execute()
 }

@@ -34,7 +34,7 @@ A tiny CLI that sends a message to an LLM Responses API and prints the returned 
   - Example: name:string,age:integer,active:boolean
 - Arrays: key:element_type[] (type[] style)
   - Example: tags:string[], scores:number[]
-- If omitted, a default schema with a single required field message:string is used
+- If omitted, no schema is enforced and free-form text is returned
 - All fields are required and additionalProperties=false
 - Limitations: no nesting (e.g., string[][] not supported); invalid pairs (e.g., :string, tags:[], name:string:string) cause an error
 
