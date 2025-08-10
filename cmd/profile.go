@@ -37,10 +37,17 @@ var profileEditCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		// Create file with minimal template if not exists
+		// Create file with a richer default template if not exists
 		if _, err := os.Stat(cfgPath); err != nil {
 			if os.IsNotExist(err) {
-				tmpl := []byte("{\n  \"default_profile\": \"\",\n  \"profiles\": {}\n}\n")
+				tmpl := []byte(`{
+  "default_profile": "default",
+  "profiles": {
+    "default": {
+    }
+  }
+}
+`)
 				if err := os.WriteFile(cfgPath, tmpl, 0o644); err != nil {
 					fmt.Println("failed to create config file:", err)
 					os.Exit(1)
