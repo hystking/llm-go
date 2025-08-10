@@ -13,7 +13,8 @@ A tiny CLI that sends a message to an LLM Responses API and prints the returned 
 
 ## Usage
 - `llmx [flags] "your message"`
-- `echo "text" | llmx`
+- `llmx -` (force reading from stdin)
+- `echo "text" | llmx` (reads piped stdin)
 - Output: prints the API’s `output_text` (or the first `output[].content[]` item with `type="output_text"`)
 
 ## Flags
@@ -38,6 +39,7 @@ A tiny CLI that sends a message to an LLM Responses API and prints the returned 
 ## Examples
 - Basic: `llmx "Hello"`
 - Pipe stdin: `echo "Hello" | llmx`
+- Force stdin: `printf "Hello" | llmx -`
 - With instructions: `llmx --instructions "Be brief." "Explain recursion"`
 - Structured JSON: `llmx --format "name:string,age:integer" "Alice is a 14-year-old who is good at dancing."`
 - Only a key: `llmx --format "name:string,age:integer" --only name "Alice is a 14-year-old..."`

@@ -25,31 +25,41 @@ var (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "llmx [flags] [\"your message\"]",
-	Short: "Send a message to the LLM API",
-	Args:  cobra.MaximumNArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
-		var message string
+    Use:   "llmx [flags] [\"your message\"|-]",
+    Short: "Send a message to the LLM API",
+    Args:  cobra.MaximumNArgs(1),
+    Run: func(cmd *cobra.Command, args []string) {
+        var message string
 
-		// Get message from command line argument if provided
-		if len(args) == 1 {
-			message = args[0]
-		} else {
-			// Read from stdin only if no command line argument
-			stdinBytes, err := io.ReadAll(os.Stdin)
-			if err != nil {
-				fmt.Println("failed to read from stdin:", err)
-				os.Exit(1)
-			}
-			stdinMessage := string(stdinBytes)
+        // Prefer command line argument if provided
+        if len(args) == 1 {
+            if args[0] == "-" {
+                // Force reading from stdin even on TTY
+                stdinBytes, err := io.ReadAll(os.Stdin)
+                if err != nil {
+                    fmt.Println("failed to read from stdin:", err)
+                    os.Exit(1)
+                }
+                message = string(stdinBytes)
+            } else {
+                message = args[0]
+            }
+        } else {
+            // If no arg, check whether stdin is a TTY (no piped input)
+            if fi, _ := os.Stdin.Stat(); fi.Mode()&os.ModeCharDevice != 0 {
+                // No piped input; show help like `llmx -h`
+                _ = cmd.Help()
+                return
+            }
 
-			if stdinMessage != "" {
-				message = stdinMessage
-			} else {
-				fmt.Println("no input provided via command line argument or stdin")
-				os.Exit(1)
-			}
-		}
+            // Stdin is not a TTY, so read from it
+            stdinBytes, err := io.ReadAll(os.Stdin)
+            if err != nil {
+                fmt.Println("failed to read from stdin:", err)
+                os.Exit(1)
+            }
+            message = string(stdinBytes)
+        }
 
 		apiKey := os.Getenv("OPENAI_API_KEY")
 		if apiKey == "" {
