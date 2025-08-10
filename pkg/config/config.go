@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"os"
+	"path/filepath"
 )
 
 type Profile struct {
@@ -68,4 +69,14 @@ func Load(configPath, profileName string) (Profile, error) {
 		return Profile{}, nil
 	}
 	return p, nil
+}
+
+// DefaultPath returns the default config file path following XDG conventions.
+// Typically: ${XDG_CONFIG_HOME:-~/.config}/llmx/config.json
+func DefaultPath() (string, error) {
+	dir, err := os.UserConfigDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(dir, "llmx", "config.json"), nil
 }

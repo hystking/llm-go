@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"llmx/pkg/config"
@@ -88,8 +87,8 @@ var rootCmd = &cobra.Command{
 		// Build default config path on CLI side
 		cfgPath := configPath
 		if strings.TrimSpace(cfgPath) == "" {
-			if dir, err := os.UserConfigDir(); err == nil {
-				cfgPath = filepath.Join(dir, "llmx", "config.json")
+			if p, err := config.DefaultPath(); err == nil {
+				cfgPath = p
 			}
 		}
 		// Load profile (non-fatal if missing or path absent)

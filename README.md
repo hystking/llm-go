@@ -38,6 +38,9 @@ A tiny CLI that sends a message to an LLM Responses API and prints the returned 
 ```
 - Select profile: `llmx --profile work "Hello"`
 - Select config file: `llmx --config ~/my_llmx.json --profile work "Hello"`
+- Edit profiles in your `$EDITOR` (falls back to `vi`):
+  - `llmx profile edit`
+  - `llmx profile edit --config ~/my_llmx.json`
 
 ## Usage
 - `llmx [flags] "your message"`
