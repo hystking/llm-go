@@ -1,18 +1,18 @@
 package cmd
 
 import (
-    "bytes"
-    "encoding/json"
-    "fmt"
-    "io"
-    "net/http"
-    "os"
-    "strings"
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"strings"
 
-    "llmx/pkg/parser"
-    "llmx/pkg/version"
+	"llmx/pkg/parser"
+	"llmx/pkg/version"
 
-    "github.com/spf13/cobra"
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -26,41 +26,41 @@ var (
 )
 
 var rootCmd = &cobra.Command{
-    Use:   "llmx [flags] [\"your message\"|-]",
-    Short: "Send a message to the LLM API",
-    Args:  cobra.MaximumNArgs(1),
-    Run: func(cmd *cobra.Command, args []string) {
-        var message string
+	Use:   "llmx [flags] [\"your message\"|-]",
+	Short: "Send a message to the LLM API",
+	Args:  cobra.MaximumNArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		var message string
 
-        // Prefer command line argument if provided
-        if len(args) == 1 {
-            if args[0] == "-" {
-                // Force reading from stdin even on TTY
-                stdinBytes, err := io.ReadAll(os.Stdin)
-                if err != nil {
-                    fmt.Println("failed to read from stdin:", err)
-                    os.Exit(1)
-                }
-                message = string(stdinBytes)
-            } else {
-                message = args[0]
-            }
-        } else {
-            // If no arg, check whether stdin is a TTY (no piped input)
-            if fi, _ := os.Stdin.Stat(); fi.Mode()&os.ModeCharDevice != 0 {
-                // No piped input; show help like `llmx -h`
-                _ = cmd.Help()
-                return
-            }
+		// Prefer command line argument if provided
+		if len(args) == 1 {
+			if args[0] == "-" {
+				// Force reading from stdin even on TTY
+				stdinBytes, err := io.ReadAll(os.Stdin)
+				if err != nil {
+					fmt.Println("failed to read from stdin:", err)
+					os.Exit(1)
+				}
+				message = string(stdinBytes)
+			} else {
+				message = args[0]
+			}
+		} else {
+			// If no arg, check whether stdin is a TTY (no piped input)
+			if fi, _ := os.Stdin.Stat(); fi.Mode()&os.ModeCharDevice != 0 {
+				// No piped input; show help like `llmx -h`
+				_ = cmd.Help()
+				return
+			}
 
-            // Stdin is not a TTY, so read from it
-            stdinBytes, err := io.ReadAll(os.Stdin)
-            if err != nil {
-                fmt.Println("failed to read from stdin:", err)
-                os.Exit(1)
-            }
-            message = string(stdinBytes)
-        }
+			// Stdin is not a TTY, so read from it
+			stdinBytes, err := io.ReadAll(os.Stdin)
+			if err != nil {
+				fmt.Println("failed to read from stdin:", err)
+				os.Exit(1)
+			}
+			message = string(stdinBytes)
+		}
 
 		apiKey := os.Getenv("OPENAI_API_KEY")
 		if apiKey == "" {
@@ -185,15 +185,15 @@ var rootCmd = &cobra.Command{
 }
 
 func init() {
-    // Version info and template
-    rootCmd.Version = version.Version
-    rootCmd.SetVersionTemplate("{{.Version}}\n")
+	// Version info and template
+	rootCmd.Version = version.Version
+	rootCmd.SetVersionTemplate("{{.Version}}\n")
 
-    rootCmd.Flags().StringVar(&model, "model", "gpt-5-nano", "model name")
-    rootCmd.Flags().StringVar(&reasoningEffort, "reasoning_effort", "minimal", "reasoning effort (minimal/low/medium/high)")
-    rootCmd.Flags().StringVar(&verbosity, "verbosity", "low", "verbosity (low/medium/high)")
-    rootCmd.Flags().StringVar(&baseURL, "base-url", "https://api.openai.com/v1", "base URL for the LLM API (e.g. https://api.openai.com/v1)")
-    rootCmd.Flags().StringVar(
+	rootCmd.Flags().StringVar(&model, "model", "gpt-5-nano", "model name")
+	rootCmd.Flags().StringVar(&reasoningEffort, "reasoning_effort", "minimal", "reasoning effort (minimal/low/medium/high)")
+	rootCmd.Flags().StringVar(&verbosity, "verbosity", "low", "verbosity (low/medium/high)")
+	rootCmd.Flags().StringVar(&baseURL, "base-url", "https://api.openai.com/v1", "base URL for the LLM API (e.g. https://api.openai.com/v1)")
+	rootCmd.Flags().StringVar(
 		&instructions,
 		"instructions",
 		"",
