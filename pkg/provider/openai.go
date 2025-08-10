@@ -12,16 +12,18 @@ import (
 // OpenAIProvider implements Provider for OpenAI Responses API.
 type OpenAIProvider struct{}
 
-func (p *OpenAIProvider) BuildAPIPayload(opts Options) (map[string]interface{}, error) {
-	model := strings.TrimSpace(opts.Model)
-	if model == "" {
-		model = "gpt-5-nano"
+func (p *OpenAIProvider) DefaultOptions() Options {
+	return Options{
+		Model: "gpt-5-nano",
 	}
+}
+
+func (p *OpenAIProvider) BuildAPIPayload(opts Options) (map[string]interface{}, error) {
 	textPayload := map[string]interface{}{
 		"verbosity": opts.Verbosity,
 	}
 
-	if opts.Properties != nil && len(opts.Properties) > 0 {
+	if len(opts.Properties) > 0 {
 		// Build JSON schema from provided properties and mark all as required
 		// Collect keys as required
 		required := make([]string, 0, len(opts.Properties))
@@ -42,7 +44,7 @@ func (p *OpenAIProvider) BuildAPIPayload(opts Options) (map[string]interface{}, 
 	}
 
 	payload := map[string]interface{}{
-		"model":        model,
+		"model":        opts.Model,
 		"instructions": opts.Instructions,
 		"input":        opts.Message,
 		"store":        false,
@@ -50,6 +52,10 @@ func (p *OpenAIProvider) BuildAPIPayload(opts Options) (map[string]interface{}, 
 		"reasoning": map[string]interface{}{
 			"effort": opts.ReasoningEffort,
 		},
+	}
+
+	if opts.MaxTokens > 0 {
+		payload["max_output_tokens"] = opts.MaxTokens
 	}
 
 	return payload, nil

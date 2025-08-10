@@ -51,15 +51,15 @@ func TestAnthropicProvider_ParseAPIResponse(t *testing.T) {
 
 func TestAnthropicProvider_BuildAPIPayload_Defaults(t *testing.T) {
 	p := &AnthropicProvider{}
-	// Empty model should fallback to haiku-latest and default max_tokens for that family
-	payload, err := p.BuildAPIPayload(Options{Model: "", Message: "Hello", Instructions: "sys"})
+	// Use provider defaults for model and max_tokens
+	payload, err := p.BuildAPIPayload(Options{Model: "claude-3-5-haiku-latest", MaxTokens: 8_192, Message: "Hello", Instructions: "sys"})
 	if err != nil {
 		t.Fatalf("unexpected err: %v", err)
 	}
 	if payload["model"] != "claude-3-5-haiku-latest" {
 		t.Fatalf("model fallback mismatch: %v", payload["model"])
 	}
-	if payload["max_tokens"] != 8192 {
+	if payload["max_tokens"] != 8_192 {
 		t.Fatalf("max_tokens default mismatch: %v", payload["max_tokens"])
 	}
 	msgs, ok := payload["messages"].([]map[string]interface{})

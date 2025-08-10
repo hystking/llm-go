@@ -12,6 +12,9 @@ type Options struct {
 	// Properties holds the parsed properties map from CLI (--format shorthand).
 	// Providers wrap this into their schema representation and mark all keys required.
 	Properties map[string]interface{}
+	// MaxTokens is the provider-specific maximum output tokens, if applicable
+	// (e.g., Anthropic Messages API). 0 means unspecified.
+	MaxTokens int
 }
 
 // RequestOptions represents options for building an HTTP request.
@@ -24,6 +27,8 @@ type RequestOptions struct {
 
 // Provider abstracts LLM API differences.
 type Provider interface {
+	// DefaultOptions returns provider-specific default options (e.g., model, max tokens).
+	DefaultOptions() Options
 	// BuildAPIPayload builds a provider-specific payload from options.
 	BuildAPIPayload(opts Options) (map[string]interface{}, error)
 	// BuildAPIRequest creates the HTTP request to send the payload.

@@ -15,6 +15,20 @@ import (
 	"github.com/spf13/cobra"
 )
 
+func ifEmpty(val, fallback string) string {
+	if strings.TrimSpace(val) == "" {
+		return fallback
+	}
+	return val
+}
+
+func ifZero(val, fallback int) int {
+	if val == 0 {
+		return fallback
+	}
+	return val
+}
+
 var (
 	model           string
 	reasoningEffort string
@@ -24,6 +38,7 @@ var (
 	baseURL         string
 	onlyKey         string
 	providerName    string
+	maxTokens       int
 )
 
 var rootCmd = &cobra.Command{
@@ -80,15 +95,22 @@ var rootCmd = &cobra.Command{
 			properties = props
 		}
 
+		// Merge defaults from provider with CLI options
+		def := prov.DefaultOptions()
+
 		// Build provider payload
-		payload, err := prov.BuildAPIPayload(provider.Options{
-			Model:           model,
-			Instructions:    instructions,
-			Message:         message,
-			Verbosity:       verbosity,
-			ReasoningEffort: reasoningEffort,
-			Properties:      properties,
-		})
+		payload, err := prov.BuildAPIPayload(
+			provider.Options{
+				Model:           ifEmpty(model, def.Model),
+				Instructions:    instructions,
+				Message:         message,
+				Verbosity:       verbosity,
+				ReasoningEffort: reasoningEffort,
+				Properties:      properties,
+				MaxTokens:       ifZero(maxTokens, def.MaxTokens),
+			},
+		)
+
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
@@ -174,6 +196,7 @@ func init() {
 	rootCmd.Flags().StringVar(&verbosity, "verbosity", "low", "verbosity (low/medium/high)")
 	rootCmd.Flags().StringVar(&baseURL, "base-url", "", "override base URL (provider default if empty)")
 	rootCmd.Flags().StringVar(&providerName, "provider", "openai", "LLM provider name (e.g., openai)")
+	rootCmd.Flags().IntVar(&maxTokens, "max-tokens", 0, "max output tokens (override; provider default if 0)")
 	rootCmd.Flags().StringVar(
 		&instructions,
 		"instructions",

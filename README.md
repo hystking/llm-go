@@ -23,6 +23,7 @@ A tiny CLI that sends a message to an LLM Responses API and prints the returned 
 - `--verbosity` low|medium|high (default: low)
 - `--base-url` (override; provider default if empty)
 - `--provider` (default: openai)
+- `--max-tokens` (override; provider default if 0)
 - `--instructions` string
 - `--format` string (shorthand for a JSON Schema)
 - `--only` key (print only the specified top-level key from structured JSON output)

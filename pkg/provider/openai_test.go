@@ -1,12 +1,11 @@
 package provider
 
-import "testing"
-
 import (
 	"encoding/json"
 	"io"
 	"net/http"
 	"reflect"
+	"testing"
 )
 
 func TestOpenAIProvider_ParseAPIResponse(t *testing.T) {
@@ -54,7 +53,7 @@ func TestOpenAIProvider_ParseAPIResponse(t *testing.T) {
 func TestOpenAIProvider_BuildAPIPayload_DefaultsAndSchema(t *testing.T) {
 	p := &OpenAIProvider{}
 	opts := Options{
-		Model:           "", // should fallback to gpt-5-nano
+		Model:           "gpt-5-nano",
 		Instructions:    "be brief",
 		Message:         "Hello",
 		Verbosity:       "low",
@@ -105,21 +104,21 @@ func TestOpenAIProvider_BuildAPIPayload_DefaultsAndSchema(t *testing.T) {
 		t.Fatalf("properties mismatch: got=%v want=%v", schema["properties"], opts.Properties)
 	}
 	// required must include all keys (order independent)
-    gotSet := map[string]bool{}
-    switch rv := schema["required"].(type) {
-    case []interface{}:
-        for _, v := range rv {
-            if s, ok := v.(string); ok {
-                gotSet[s] = true
-            }
-        }
-    case []string:
-        for _, s := range rv {
-            gotSet[s] = true
-        }
-    default:
-        t.Fatalf("required missing or wrong type: %T", schema["required"])
-    }
+	gotSet := map[string]bool{}
+	switch rv := schema["required"].(type) {
+	case []interface{}:
+		for _, v := range rv {
+			if s, ok := v.(string); ok {
+				gotSet[s] = true
+			}
+		}
+	case []string:
+		for _, s := range rv {
+			gotSet[s] = true
+		}
+	default:
+		t.Fatalf("required missing or wrong type: %T", schema["required"])
+	}
 	for k := range opts.Properties {
 		if !gotSet[k] {
 			t.Fatalf("required missing key: %s", k)
@@ -154,5 +153,25 @@ func TestOpenAIProvider_BuildAPIRequest_DefaultsAndHeaders(t *testing.T) {
 	}
 	if got["model"] != "gpt-5-nano" {
 		t.Fatalf("body model mismatch: %v", got["model"])
+	}
+}
+
+func TestOpenAIProvider_BuildAPIPayload_MaxOutputTokens(t *testing.T) {
+	p := &OpenAIProvider{}
+	opts := Options{Model: p.DefaultOptions().Model, Message: "Hi", MaxTokens: 1234}
+	payload, err := p.BuildAPIPayload(opts)
+	if err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	if payload["max_output_tokens"] != 1234 {
+		t.Fatalf("expected max_output_tokens=1234, got %v", payload["max_output_tokens"])
+	}
+	// When MaxTokens is zero, the field should be absent
+	payload, err = p.BuildAPIPayload(Options{Model: p.DefaultOptions().Model, Message: "Hi", MaxTokens: 0})
+	if err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	if _, exists := payload["max_output_tokens"]; exists {
+		t.Fatalf("max_output_tokens should be omitted when zero")
 	}
 }

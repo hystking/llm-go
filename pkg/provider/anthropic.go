@@ -12,16 +12,18 @@ import (
 // AnthropicProvider implements Provider for Anthropic Messages API.
 type AnthropicProvider struct{}
 
-func (p *AnthropicProvider) BuildAPIPayload(opts Options) (map[string]interface{}, error) {
-	model := strings.TrimSpace(opts.Model)
-	if model == "" {
-		model = "claude-3-5-haiku-latest"
+func (p *AnthropicProvider) DefaultOptions() Options {
+	model := "claude-3-5-haiku-latest"
+	return Options{
+		Model:     model,
+		MaxTokens: anthropicDefaultMaxTokens(model),
 	}
-	// Minimal mapping: one-turn user message and optional system prompt.
-	maxTokens := anthropicDefaultMaxTokens(model)
+}
+
+func (p *AnthropicProvider) BuildAPIPayload(opts Options) (map[string]interface{}, error) {
 	payload := map[string]interface{}{
-		"model":      model,
-		"max_tokens": maxTokens,
+		"model":      opts.Model,
+		"max_tokens": opts.MaxTokens,
 		"messages": []map[string]interface{}{
 			{
 				"role":    "user",
