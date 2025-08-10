@@ -32,28 +32,27 @@ var rootCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		var message string
 
-		// Prefer command line argument if provided
+		// Decide message source with a single read path
+		shouldReadStdin := false
 		if len(args) == 1 {
 			if args[0] == "-" {
 				// Force reading from stdin even on TTY
-				stdinBytes, err := io.ReadAll(os.Stdin)
-				if err != nil {
-					fmt.Println("failed to read from stdin:", err)
-					os.Exit(1)
-				}
-				message = string(stdinBytes)
+				shouldReadStdin = true
 			} else {
 				message = args[0]
 			}
-		} else {
-			// If no arg, check whether stdin is a TTY (no piped input)
-			if fi, _ := os.Stdin.Stat(); fi.Mode()&os.ModeCharDevice != 0 {
+		} else { // no arg
+			// If no arg, check whether stdin has piped input
+			if fi, _ := os.Stdin.Stat(); fi.Mode()&os.ModeCharDevice == 0 {
+				shouldReadStdin = true
+			} else {
 				// No piped input; show help like `llmx -h`
 				_ = cmd.Help()
 				return
 			}
+		}
 
-			// Stdin is not a TTY, so read from it
+		if shouldReadStdin {
 			stdinBytes, err := io.ReadAll(os.Stdin)
 			if err != nil {
 				fmt.Println("failed to read from stdin:", err)
