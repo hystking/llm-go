@@ -18,10 +18,10 @@ A tiny CLI that sends a message to an LLM Responses API and prints the returned 
 - Output: prints the API’s `output_text` (or the first `output[].content[]` item with `type="output_text"`)
 
 ## Flags
-- `--model` (default: gpt-5-nano)
+- `--model` (provider default if empty)
 - `--reasoning_effort` minimal|low|medium|high (default: minimal)
 - `--verbosity` low|medium|high (default: low)
-- `--base-url` (default: https://api.openai.com/v1)
+- `--base-url` (override; provider default if empty)
 - `--provider` (default: openai)
 - `--instructions` string
 - `--format` string (shorthand for a JSON Schema)

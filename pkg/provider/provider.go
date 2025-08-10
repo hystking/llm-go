@@ -37,6 +37,8 @@ func New(name string) (Provider, error) {
 	switch name {
 	case "openai", "oa", "default", "":
 		return &OpenAIProvider{}, nil
+	case "anthropic", "claude", "anth":
+		return &AnthropicProvider{}, nil
 	default:
 		return nil, ErrUnknownProvider{name: name}
 	}

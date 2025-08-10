@@ -13,6 +13,10 @@ import (
 type OpenAIProvider struct{}
 
 func (p *OpenAIProvider) BuildAPIPayload(opts Options) (map[string]interface{}, error) {
+	model := strings.TrimSpace(opts.Model)
+	if model == "" {
+		model = "gpt-5-nano"
+	}
 	textPayload := map[string]interface{}{
 		"verbosity": opts.Verbosity,
 	}
@@ -38,7 +42,7 @@ func (p *OpenAIProvider) BuildAPIPayload(opts Options) (map[string]interface{}, 
 	}
 
 	payload := map[string]interface{}{
-		"model":        opts.Model,
+		"model":        model,
 		"instructions": opts.Instructions,
 		"input":        opts.Message,
 		"store":        false,
