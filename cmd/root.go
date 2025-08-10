@@ -92,7 +92,12 @@ var rootCmd = &cobra.Command{
 			}
 		}
 		// Load profile (non-fatal if missing or path absent)
-		prof, _ := config.Load(cfgPath, profileName)
+		prof, err := config.Load(cfgPath, profileName)
+
+		if err != nil {
+			fmt.Println("failed to load config:", err)
+			os.Exit(1)
+		}
 
 		// Select provider (profile -> CLI)
 		prov, err := provider.New(firstNonEmpty(providerName, prof.Provider))
