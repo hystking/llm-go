@@ -18,9 +18,10 @@ func (p *AnthropicProvider) BuildAPIPayload(opts Options) (map[string]interface{
 		model = "claude-3-5-haiku-latest"
 	}
 	// Minimal mapping: one-turn user message and optional system prompt.
+	maxTokens := anthropicDefaultMaxTokens(model)
 	payload := map[string]interface{}{
 		"model":      model,
-		"max_tokens": 8_192, // sensible default if user didn't specify
+		"max_tokens": maxTokens,
 		"messages": []map[string]interface{}{
 			{
 				"role":    "user",
@@ -98,4 +99,29 @@ func (p *AnthropicProvider) ParseAPIResponse(respBody []byte) (string, error) {
 		}
 	}
 	return b.String(), nil
+}
+
+// anthropicDefaultMaxTokens returns a default max_tokens per model family
+// based on Anthropic's Models overview page.
+func anthropicDefaultMaxTokens(model string) int {
+	m := strings.ToLower(model)
+	switch {
+	case strings.Contains(m, "opus-4-1"):
+		return 32_000
+	case strings.Contains(m, "opus-4"):
+		return 32_000
+	case strings.Contains(m, "sonnet-4-0") || strings.Contains(m, "sonnet-4"):
+		return 64_000
+	case strings.Contains(m, "3-7-sonnet"):
+		return 64_000
+	case strings.Contains(m, "3-5-sonnet"):
+		return 8_192
+	case strings.Contains(m, "3-5-haiku") || strings.Contains(m, "haiku-latest"):
+		return 8_192
+	case strings.Contains(m, "3-haiku"):
+		return 4_096
+	default:
+		// conservative lower bound to avoid exceeding max output for smaller models
+		return 4_096
+	}
 }
