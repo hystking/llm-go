@@ -10,6 +10,34 @@ A tiny CLI that sends a message to an LLM Responses API and prints the returned 
 
 ## Configure
 - Set your API key: `export OPENAI_API_KEY=your_key`
+  
+### Profiles (optional)
+- Config file path: `--config /path/to/config.json` or `${XDG_CONFIG_HOME:-~/.config}/llmx/config.json`
+- Structure:
+```json
+{
+  "default_profile": "work",
+  "profiles": {
+    "work": {
+      "provider": "openai",
+      "model": "gpt-5-nano",
+      "max_tokens": 512,
+      "verbosity": "low",
+      "reasoning_effort": "minimal",
+      "format": "name:string,age:integer",
+      "only": "name",
+      "base_url": ""
+    },
+    "claude": {
+      "provider": "anthropic",
+      "model": "claude-3-5-haiku-latest",
+      "max_tokens": 8192
+    }
+  }
+}
+```
+- Select profile: `llmx --profile work "Hello"`
+- Select config file: `llmx --config ~/my_llmx.json --profile work "Hello"`
 
 ## Usage
 - `llmx [flags] "your message"`
@@ -24,6 +52,8 @@ A tiny CLI that sends a message to an LLM Responses API and prints the returned 
 - `--base-url` (override; provider default if empty)
 - `--provider` (default: openai)
 - `--max-tokens` (override; provider default if 0)
+- `--profile` (selects settings from config)
+- `--config` path to config JSON (defaults to `${XDG_CONFIG_HOME:-~/.config}/llmx/config.json`)
 - `--instructions` string
 - `--format` string (shorthand for a JSON Schema)
 - `--only` key (print only the specified top-level key from structured JSON output)

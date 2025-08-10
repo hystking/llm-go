@@ -87,13 +87,6 @@ func (p *OpenAIProvider) BuildAPIRequest(payload map[string]interface{}, baseURL
 	}
 	req.Header.Set("Authorization", "Bearer "+apiKey)
 
-	for k, v := range reqOpts.ExtraHeaders {
-		if k == "" || v == "" {
-			continue
-		}
-		req.Header.Set(k, v)
-	}
-
 	return req, nil
 }
 

@@ -21,8 +21,6 @@ type Options struct {
 type RequestOptions struct {
 	// APIKey is optional. If empty, provider may resolve from env.
 	APIKey string
-	// ExtraHeaders allows provider-agnostic additions.
-	ExtraHeaders map[string]string
 }
 
 // Provider abstracts LLM API differences.

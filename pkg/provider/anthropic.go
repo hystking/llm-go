@@ -71,13 +71,6 @@ func (p *AnthropicProvider) BuildAPIRequest(payload map[string]interface{}, base
 	}
 	req.Header.Set("x-api-key", apiKey)
 
-	for k, v := range reqOpts.ExtraHeaders {
-		if k == "" || v == "" {
-			continue
-		}
-		req.Header.Set(k, v)
-	}
-
 	return req, nil
 }
 

@@ -6,8 +6,10 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 
+	"llmx/pkg/config"
 	"llmx/pkg/parser"
 	"llmx/pkg/provider"
 	"llmx/pkg/version"
@@ -15,18 +17,22 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func ifEmpty(val, fallback string) string {
-	if strings.TrimSpace(val) == "" {
-		return fallback
+func firstNonEmpty(values ...string) string {
+	for _, v := range values {
+		if strings.TrimSpace(v) != "" {
+			return v
+		}
 	}
-	return val
+	return ""
 }
 
-func ifZero(val, fallback int) int {
-	if val == 0 {
-		return fallback
+func firstNonZero(values ...int) int {
+	for _, v := range values {
+		if v != 0 {
+			return v
+		}
 	}
-	return val
+	return 0
 }
 
 var (
@@ -39,6 +45,8 @@ var (
 	onlyKey         string
 	providerName    string
 	maxTokens       int
+	profileName     string
+	configPath      string
 )
 
 var rootCmd = &cobra.Command{
@@ -77,17 +85,27 @@ var rootCmd = &cobra.Command{
 			message = string(stdinBytes)
 		}
 
-		// Select provider
-		prov, err := provider.New(providerName)
+		// Build default config path on CLI side
+		cfgPath := configPath
+		if strings.TrimSpace(cfgPath) == "" {
+			if dir, err := os.UserConfigDir(); err == nil {
+				cfgPath = filepath.Join(dir, "llmx", "config.json")
+			}
+		}
+		// Load profile (non-fatal if missing or path absent)
+		prof, _ := config.Load(cfgPath, profileName)
+
+		// Select provider (profile -> CLI)
+		prov, err := provider.New(firstNonEmpty(providerName, prof.Provider))
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
 
-		// Build properties on CLI side if --format is specified
+		// Build properties parsing CLI/profile format if provided
 		var properties map[string]interface{}
-		if strings.TrimSpace(format) != "" {
-			props, err := parser.ParseFormat(format)
+		if fs := firstNonEmpty(format, prof.Format); strings.TrimSpace(fs) != "" {
+			props, err := parser.ParseFormat(fs)
 			if err != nil {
 				fmt.Printf("failed to parse format: %v\n", err)
 				os.Exit(1)
@@ -95,21 +113,17 @@ var rootCmd = &cobra.Command{
 			properties = props
 		}
 
-		// Merge defaults from provider with CLI options
+		// Merge defaults from provider with profile and CLI options
 		def := prov.DefaultOptions()
-
-		// Build provider payload
-		payload, err := prov.BuildAPIPayload(
-			provider.Options{
-				Model:           ifEmpty(model, def.Model),
-				Instructions:    instructions,
-				Message:         message,
-				Verbosity:       verbosity,
-				ReasoningEffort: reasoningEffort,
-				Properties:      properties,
-				MaxTokens:       ifZero(maxTokens, def.MaxTokens),
-			},
-		)
+		payload, err := prov.BuildAPIPayload(provider.Options{
+			Model:           firstNonEmpty(model, prof.Model, def.Model),
+			Instructions:    firstNonEmpty(instructions, prof.Instructions),
+			Message:         message,
+			Verbosity:       firstNonEmpty(verbosity, prof.Verbosity),
+			ReasoningEffort: firstNonEmpty(reasoningEffort, prof.ReasoningEffort),
+			Properties:      properties,
+			MaxTokens:       firstNonZero(maxTokens, prof.MaxTokens, def.MaxTokens),
+		})
 
 		if err != nil {
 			fmt.Println(err)
@@ -117,7 +131,11 @@ var rootCmd = &cobra.Command{
 		}
 
 		// Build request (API key resolved in provider if omitted here)
-		req, err := prov.BuildAPIRequest(payload, baseURL, provider.RequestOptions{})
+		req, err := prov.BuildAPIRequest(
+			payload,
+			firstNonEmpty(baseURL, prof.BaseURL),
+			provider.RequestOptions{},
+		)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
@@ -149,16 +167,16 @@ var rootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		// If --only is specified, attempt to parse structured JSON and print only that key
-		if strings.TrimSpace(onlyKey) != "" {
+		// If only is specified (CLI/profile), print only the specified key
+		if only := firstNonEmpty(onlyKey, prof.Only); strings.TrimSpace(only) != "" {
 			var obj map[string]interface{}
 			if err := json.Unmarshal([]byte(textOut), &obj); err != nil {
 				fmt.Println("--only requires structured JSON output; failed to parse JSON:", err)
 				os.Exit(1)
 			}
-			val, ok := obj[onlyKey]
+			val, ok := obj[only]
 			if !ok {
-				fmt.Printf("key not found: %s\n", onlyKey)
+				fmt.Printf("key not found: %s\n", only)
 				os.Exit(1)
 			}
 			switch v := val.(type) {
@@ -197,6 +215,8 @@ func init() {
 	rootCmd.Flags().StringVar(&baseURL, "base-url", "", "override base URL (provider default if empty)")
 	rootCmd.Flags().StringVar(&providerName, "provider", "openai", "LLM provider name (e.g., openai)")
 	rootCmd.Flags().IntVar(&maxTokens, "max-tokens", 0, "max output tokens (override; provider default if 0)")
+	rootCmd.Flags().StringVar(&profileName, "profile", "", "profile name from config (falls back to default_profile)")
+	rootCmd.Flags().StringVar(&configPath, "config", "", "path to config file (defaults to ~/.config/llmx/config.json)")
 	rootCmd.Flags().StringVar(
 		&instructions,
 		"instructions",
