@@ -4,25 +4,21 @@ A tiny CLI that sends a message to an LLM Responses API and prints the returned 
 
 ## Install
 - Prerequisite: Go 1.24.x
-- Build: make build
-- Install to /usr/local/bin: sudo make install
-- Or: go build -o llmx main.go parser.go
+- Build: `make build`
+- Install to `~/bin`: `make install` (ensure `~/bin` is in your PATH)
+- Or: `go build -o llmx .`
 
 ## Configure
-- Set your API key: export OPENAI_API_KEY=your_key
-- Default base URL: https://api.openai.com/v1
+- Set your API key: `export OPENAI_API_KEY=your_key`
 
 ## Usage
 - `llmx [flags] "your message"`
 - `echo "text" | llmx`
-- Input rules:
-  - If an argument is provided: message = argument
-  - Else: message = stdin (errors if empty)
-- Output: prints the API’s output_text (or the first output[].content[] item with type="output_text") without a trailing newline
+- Output: prints the API’s `output_text` (or the first `output[].content[]` item with `type="output_text"`)
 
 ## Flags
 - `--model` (default: gpt-5-nano)
-- `--reasoning_effort` low|medium|high (default: low)
+- `--reasoning_effort` minimal|low|medium|high (default: minimal)
 - `--verbosity` low|medium|high (default: low)
 - `--base-url` (default: https://api.openai.com/v1)
 - `--instructions` string
@@ -34,9 +30,10 @@ A tiny CLI that sends a message to an LLM Responses API and prints the returned 
   - Example: name:string,age:integer,active:boolean
 - Arrays: key:element_type[] (type[] style)
   - Example: tags:string[], scores:number[]
+- Omitted type defaults to string
+  - Example: name,age:integer => name is string
 - If omitted, no schema is enforced and free-form text is returned
 - All fields are required and additionalProperties=false
-- Limitations: no nesting (e.g., string[][] not supported); invalid pairs (e.g., :string, tags:[], name:string:string) cause an error
 
 ## Examples
 - Basic: `llmx "Hello"`
@@ -67,13 +64,8 @@ cat error.log | llmx "Summarize the main issues and suggest solutions.\n" --form
 ### Natural language to commands
 ```bash
 # Convert description to shell command
-llmx "How do I find all .go files modified in the last 7 days?" --format "command:string,explanation:string"
+llmx "How do I find all .go files modified in the last 7 days?" --format "command,explanation" --only command
 ```
-
-## Behavior and errors
-- Non-2xx responses: prints the body and exits with code 1
-- Missing OPENAI_API_KEY or invalid --format: exits with code 1
-- Response parsing expects output_text or output[].content[].type == "output_text"
 
 ## Development
 - Run tests: `make test` or `go test -v ./...`
