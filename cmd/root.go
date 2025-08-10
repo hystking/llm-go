@@ -1,17 +1,18 @@
 package cmd
 
 import (
-	"bytes"
-	"encoding/json"
-	"fmt"
-	"io"
-	"net/http"
-	"os"
-	"strings"
+    "bytes"
+    "encoding/json"
+    "fmt"
+    "io"
+    "net/http"
+    "os"
+    "strings"
 
-	"llmx/pkg/parser"
+    "llmx/pkg/parser"
+    "llmx/pkg/version"
 
-	"github.com/spf13/cobra"
+    "github.com/spf13/cobra"
 )
 
 var (
@@ -184,11 +185,15 @@ var rootCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.Flags().StringVar(&model, "model", "gpt-5-nano", "model name")
-	rootCmd.Flags().StringVar(&reasoningEffort, "reasoning_effort", "minimal", "reasoning effort (minimal/low/medium/high)")
-	rootCmd.Flags().StringVar(&verbosity, "verbosity", "low", "verbosity (low/medium/high)")
-	rootCmd.Flags().StringVar(&baseURL, "base-url", "https://api.openai.com/v1", "base URL for the LLM API (e.g. https://api.openai.com/v1)")
-	rootCmd.Flags().StringVar(
+    // Version info and template
+    rootCmd.Version = version.Version
+    rootCmd.SetVersionTemplate("{{.Version}}\n")
+
+    rootCmd.Flags().StringVar(&model, "model", "gpt-5-nano", "model name")
+    rootCmd.Flags().StringVar(&reasoningEffort, "reasoning_effort", "minimal", "reasoning effort (minimal/low/medium/high)")
+    rootCmd.Flags().StringVar(&verbosity, "verbosity", "low", "verbosity (low/medium/high)")
+    rootCmd.Flags().StringVar(&baseURL, "base-url", "https://api.openai.com/v1", "base URL for the LLM API (e.g. https://api.openai.com/v1)")
+    rootCmd.Flags().StringVar(
 		&instructions,
 		"instructions",
 		"",

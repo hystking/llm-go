@@ -25,6 +25,7 @@ A tiny CLI that sends a message to an LLM Responses API and prints the returned 
 - `--instructions` string
 - `--format` string (shorthand for a JSON Schema)
 - `--only` key (print only the specified top-level key from structured JSON output)
+- `--version` print version and exit
 
 ## Output formatting (--format)
 - Shorthand: key:type pairs separated by commas
@@ -72,3 +73,11 @@ llmx "How do I find all .go files modified in the last 7 days?" --format "comman
 ## Development
 - Run tests: `make test` or `go test -v ./...`
 - Clean: `make clean`
+  
+### Build with version metadata (optional)
+```bash
+go build -o llmx \
+  -ldflags "-X llmx/pkg/version.Version=v0.1.0 \
+            -X llmx/pkg/version.Commit=$(git rev-parse --short HEAD) \
+            -X llmx/pkg/version.Date=$(date -u +%Y-%m-%d)" .
+```
