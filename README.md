@@ -51,8 +51,8 @@ A tiny CLI that sends a message to an LLM Responses API and prints the returned 
 # Generate commit message from staged changes
 git diff --staged | llmx \
   --format "commit_message:string" \
-  --instructions "Follow conventional commits format. Type should be feat/fix/docs/style/refactor/test/chore. Generate a git commit message for the following changes:" | \
-  jq -r .commit_message
+  --instructions "Follow conventional commits format. Type should be feat/fix/docs/style/refactor/test/chore. Generate a git commit message for the following changes:"\
+  --only "commit_message"
 ```
 
 ### Log file analysis
