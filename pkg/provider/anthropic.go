@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"sort"
 	"strings"
 )
 
@@ -37,8 +38,52 @@ func (p *AnthropicProvider) BuildAPIPayload(opts Options) (map[string]interface{
 		payload["system"] = opts.Instructions
 	}
 
-	// Note: opts.Properties is ignored for Anthropic in this minimal implementation.
-	// Advanced: could translate to tools or structured output guidance via system prompt.
+	// If properties are provided, guide Anthropic to return strict JSON.
+	if len(opts.Properties) > 0 {
+		// Build a concise schema hint for the system prompt.
+		keys := make([]string, 0, len(opts.Properties))
+		for k := range opts.Properties {
+			keys = append(keys, k)
+		}
+		// Keep deterministic order for tests/logs
+		sort.Strings(keys)
+
+		var b strings.Builder
+		b.WriteString("Return only a strict JSON object with keys ")
+		b.WriteString(strings.Join(keys, ", "))
+		b.WriteString(". No prose, no explanations, no markdown. ")
+		b.WriteString("All keys are required. Types: ")
+		for i, k := range keys {
+			if i > 0 {
+				b.WriteString(", ")
+			}
+			// Best-effort type description from shorthand
+			t := "string"
+			if m, ok := opts.Properties[k].(map[string]interface{}); ok {
+				if tt, ok := m["type"].(string); ok {
+					if strings.EqualFold(tt, "array") {
+						if it, ok := m["items"].(map[string]interface{}); ok {
+							if itype, ok := it["type"].(string); ok {
+								t = fmt.Sprintf("array<%s>", itype)
+							}
+						}
+					} else {
+						t = tt
+					}
+				}
+			}
+			b.WriteString(k)
+			b.WriteString(": ")
+			b.WriteString(t)
+		}
+
+		sys := b.String()
+		if s, ok := payload["system"].(string); ok && strings.TrimSpace(s) != "" {
+			payload["system"] = s + "\n\n" + sys
+		} else {
+			payload["system"] = sys
+		}
+	}
 
 	return payload, nil
 }

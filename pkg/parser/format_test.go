@@ -13,14 +13,10 @@ func TestParseFormat(t *testing.T) {
 		wantErr        bool
 	}{
 		{
-			name:   "empty format returns default",
-			format: "",
-			wantProperties: map[string]interface{}{
-				"message": map[string]interface{}{
-					"type": "string",
-				},
-			},
-			wantErr: false,
+			name:           "empty format returns empty properties",
+			format:         "",
+			wantProperties: map[string]interface{}{},
+			wantErr:        false,
 		},
 		{
 			name:   "simple string field",

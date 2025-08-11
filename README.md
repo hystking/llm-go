@@ -1,6 +1,6 @@
 # llmx
 
-One CLI for OpenAI/Anthropic/Gemini. Simple prompts in, useful text out — and structured JSON when you want it via a friendly `--format` shorthand (OpenAI).
+One CLI for OpenAI/Anthropic/Gemini. Simple prompts in, useful JSON out — always structured via a friendly `--format` shorthand. By default, output is a JSON object with two string fields: `message` and `error`. If `error` is non-empty, the CLI prints it to stderr and exits with a non-zero status.
 
 ## Quickstart
 - Requires Go 1.24.x
@@ -23,7 +23,7 @@ Examples:
 The default provider is OpenAI. If you omit `--provider` and `OPENAI_API_KEY` is not set, the CLI prints a clear error with setup examples. Secrets are never shown.
 
 ## Usage
-- Minimal OpenAI: `llmx "Hello"`
+- Minimal OpenAI (JSON by default): `llmx "Hello"`
 - Minimal Anthropic: `llmx --provider anthropic "Hello"`
 - Minimal Gemini: `llmx --provider gemini "Hello"`
 
@@ -36,7 +36,7 @@ Input options:
 - `--provider openai|anthropic|gemini` (default: openai)
 - `--model string`
 - `--instructions string`
-- `--format string`  e.g., `"name:string,age:integer,tags:string[]"`
+- `--format string`  default `"message,error"`; e.g., `"name:string,age:integer,tags:string[]"`
 - `--only key`  print only the specified top-level key from structured JSON output (requires JSON output, e.g., via `--format`)
 - `--max-tokens int`
 - `--base-url string`  override API base URL (useful for gateways)
@@ -45,7 +45,7 @@ Input options:
 - `--reasoning-effort minimal|low|medium|high` (default: minimal)
 - `--version`
 
-## Structured Output (OpenAI)
+## Structured Output
 - Shorthand: key:type pairs, comma‑separated: `name:string,age:integer`
 - Arrays: `key:type[]` (`tags:string[]`)
 - Omitted type defaults to string (`name`)
@@ -60,7 +60,10 @@ $ llmx --format "command:string,explanation:string" --only command \
 "find . -type f -name '*.go'"
 ```
 
-Note: Anthropic currently ignores `--format` (text‑only). Gemini support varies by model.
+Notes:
+- OpenAI: strict JSON schema is enforced.
+- Anthropic: the CLI adds a system prompt to return only strict JSON for the requested keys; compliance depends on the model.
+- Gemini: uses JSON mode with a response schema when supported by the model.
 
 ## Examples
 - Basic: `llmx "Hello"`

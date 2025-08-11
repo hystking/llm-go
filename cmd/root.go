@@ -110,15 +110,11 @@ var rootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		// Build properties on CLI side if --format is specified
-		var properties map[string]interface{}
-		if strings.TrimSpace(format) != "" {
-			props, err := parser.ParseFormat(format)
-			if err != nil {
-				fmt.Printf("failed to parse format: %v\n", err)
-				os.Exit(1)
-			}
-			properties = props
+		// Always build properties (format). Defaults to "message,error" when empty.
+		properties, err := parser.ParseFormat(format)
+		if err != nil {
+			fmt.Printf("failed to parse format: %v\n", err)
+			os.Exit(1)
 		}
 
 		// Merge defaults from provider with CLI options
@@ -250,13 +246,23 @@ var rootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
+		// Best-effort JSON decode once; reuse for error/only handling.
+		var obj map[string]interface{}
+		if err := json.Unmarshal([]byte(textOut), &obj); err == nil {
+			// If the structured JSON contains a non-empty "error", exit non-zero.
+			if ev, ok := obj["error"]; ok {
+				if es, ok := ev.(string); ok && strings.TrimSpace(es) != "" {
+					fmt.Fprintln(os.Stderr, es)
+					os.Exit(1)
+				}
+			}
+		} else {
+			// Not JSON; leave obj as nil and continue. This is unexpected when using --format.
+			os.Exit(1)
+		}
+
 		// If --only is specified, attempt to parse structured JSON and print only that key
 		if strings.TrimSpace(onlyKey) != "" {
-			var obj map[string]interface{}
-			if err := json.Unmarshal([]byte(textOut), &obj); err != nil {
-				fmt.Println("--only requires structured JSON output; failed to parse JSON:", err)
-				os.Exit(1)
-			}
 			val, ok := obj[onlyKey]
 			if !ok {
 				fmt.Printf("key not found: %s\n", onlyKey)
@@ -308,8 +314,8 @@ func init() {
 	rootCmd.Flags().StringVar(
 		&format,
 		"format",
-		"",
-		"output format specification (e.g., \"name:string,age:integer,active:boolean\")",
+		"message,error",
+		"output format specification (default: \"message,error\"; e.g., \"name:string,age:integer,active:boolean\")",
 	)
 	rootCmd.Flags().StringVar(
 		&onlyKey,

@@ -9,12 +9,7 @@ import (
 // Supports array types: "key:type[]". All fields are considered required by consumers.
 func ParseFormat(format string) (map[string]interface{}, error) {
 	if format == "" {
-		// Default format
-		return map[string]interface{}{
-			"message": map[string]interface{}{
-				"type": "string",
-			},
-		}, nil
+		return make(map[string]interface{}), nil
 	}
 
 	properties := make(map[string]interface{})
