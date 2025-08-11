@@ -49,14 +49,11 @@ func (p *AnthropicProvider) BuildAPIPayload(opts Options) (map[string]interface{
 		sort.Strings(keys)
 
 		var b strings.Builder
-		b.WriteString("Return only a strict JSON object with keys ")
-		b.WriteString(strings.Join(keys, ", "))
-		b.WriteString(". No prose, no explanations, no markdown. ")
-		b.WriteString("All keys are required. Types: ")
-		for i, k := range keys {
-			if i > 0 {
-				b.WriteString(", ")
-			}
+		b.WriteString("RETURN ONLY A STRICT JSON OBJECT. ")
+		b.WriteString("NO PROSE, NO EXPLANATIONS, NO MARKDOWN. ")
+		b.WriteString("THE JSON SCHEMA IS BELOW:\n\n")
+		b.WriteString("type ResponseSchema = {\n")
+		for _, k := range keys {
 			// Best-effort type description from shorthand
 			t := "string"
 			if m, ok := opts.Properties[k].(map[string]interface{}); ok {
@@ -72,10 +69,13 @@ func (p *AnthropicProvider) BuildAPIPayload(opts Options) (map[string]interface{
 					}
 				}
 			}
+			b.WriteString("  ")
 			b.WriteString(k)
 			b.WriteString(": ")
 			b.WriteString(t)
+			b.WriteString(";\n")
 		}
+		b.WriteString("}")
 
 		sys := b.String()
 		if s, ok := payload["system"].(string); ok && strings.TrimSpace(s) != "" {
