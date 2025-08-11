@@ -20,7 +20,7 @@ Examples:
 - bash/zsh: `export OPENAI_API_KEY=sk-...`
 - fish: `set -x OPENAI_API_KEY sk-...`
 
-If a required key is missing, the CLI prints a clear error (no secrets leaked).
+The default provider is OpenAI. If you omit `--provider` and `OPENAI_API_KEY` is not set, the CLI prints a clear error with setup examples. Secrets are never shown.
 
 ## Usage
 - Minimal OpenAI: `llmx "Hello"`
@@ -36,8 +36,8 @@ Input options:
 - `--provider openai|anthropic|gemini` (default: openai)
 - `--model string`
 - `--instructions string`
-- `--format string`  e.g. `"name:string,age:integer,tags:string[]"`
-- `--only key`  print only a top‑level key from structured JSON
+- `--format string`  e.g., `"name:string,age:integer,tags:string[]"`
+- `--only key`  print only the specified top-level key from structured JSON output (requires JSON output, e.g., via `--format`)
 - `--max-tokens int`
 - `--base-url string`  override API base URL (useful for gateways)
 - `--verbosity low|medium|high` (default: low)
@@ -83,7 +83,8 @@ go build -o llmx \
 ```
 
 ## Notes
-- Security: API keys are never printed; debug logs redact secrets. Be cautious with `--base-url` if using third‑party gateways.
+- Security: API keys are never printed; even with `--verbose`, secrets are redacted.
+- Base URL: when you set `--base-url`, your prompts and outputs may be sent to a third‑party gateway. Use only trusted endpoints and review their privacy/logging policies. The URL must be a full `https://` URL with a host; invalid URLs are validated early with a friendly error.
 - Telemetry: none by default.
 
 ## Why this CLI?
