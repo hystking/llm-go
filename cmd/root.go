@@ -39,6 +39,7 @@ var (
 	verbose         bool
 	instructions    string
 	format          string
+	errorKey        string
 	baseURL         string
 	onlyKey         string
 	providerName    string
@@ -110,11 +111,18 @@ var rootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		// Always build properties (format). Defaults to "message,error" when empty.
+		// Always build properties (format).
 		properties, err := parser.ParseFormat(format)
 		if err != nil {
 			fmt.Printf("failed to parse format: %v\n", err)
 			os.Exit(1)
+		}
+		// If a custom --error-key is provided, require that the schema includes it.
+		if strings.TrimSpace(errorKey) != "" && errorKey != "error" {
+			if _, hasCustom := properties[errorKey]; !hasCustom {
+				fmt.Printf("--error-key %q not found in --format schema. Include it in --format.\n", errorKey)
+				os.Exit(1)
+			}
 		}
 
 		// Merge defaults from provider with CLI options
@@ -250,7 +258,7 @@ var rootCmd = &cobra.Command{
 		var obj map[string]interface{}
 		if err := json.Unmarshal([]byte(textOut), &obj); err == nil {
 			// If the structured JSON contains a non-empty "error", exit non-zero.
-			if ev, ok := obj["error"]; ok {
+			if ev, ok := obj[errorKey]; ok {
 				if es, ok := ev.(string); ok && strings.TrimSpace(es) != "" {
 					fmt.Fprintln(os.Stderr, es)
 					os.Exit(1)
@@ -315,8 +323,9 @@ func init() {
 		&format,
 		"format",
 		"message,error",
-		"output format specification (default: \"message,error\"; e.g., \"name:string,age:integer,active:boolean\")",
+		"output format specification (default: \"message,error\"; e.g., \"name:string,age:integer,active:boolean\"). The error field name can be changed via --error-key",
 	)
+	rootCmd.Flags().StringVar(&errorKey, "error-key", "error", "name of the error field in structured JSON (non-empty triggers non-zero exit)")
 	rootCmd.Flags().StringVar(
 		&onlyKey,
 		"only",

@@ -1,6 +1,6 @@
 # llmx
 
-One CLI for OpenAI/Anthropic/Gemini. Simple prompts in, useful JSON out — always structured via a friendly `--format` shorthand. By default, output is a JSON object with two string fields: `message` and `error`. If `error` is non-empty, the CLI prints it to stderr and exits with a non-zero status.
+One CLI for OpenAI/Anthropic/Gemini. Simple prompts in, useful JSON out — always structured via a friendly `--format` shorthand. By default, output is a JSON object with two string fields: `message` and `error`. If the configured error field is non-empty, the CLI prints it to stderr and exits with a non-zero status.
 
 ## Quickstart
 - Requires Go 1.24.x
@@ -37,6 +37,7 @@ Input options:
 - `--model string`
 - `--instructions string`
 - `--format string`  default `"message,error"`; e.g., `"name:string,age:integer,tags:string[]"`
+- `--error-key string` name of the error field in structured JSON (default: `error`). When set, your `--format` schema must include this key.
 - `--only key`  print only the specified top-level key from structured JSON output (requires JSON output, e.g., via `--format`)
 - `--max-tokens int`
 - `--base-url string`  override API base URL (useful for gateways)
