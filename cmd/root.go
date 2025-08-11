@@ -192,7 +192,7 @@ func init() {
 	rootCmd.SetVersionTemplate("{{.Version}}\n")
 
 	rootCmd.Flags().StringVar(&model, "model", "", "model name (provider default if empty)")
-	rootCmd.Flags().StringVar(&reasoningEffort, "reasoning_effort", "minimal", "reasoning effort (minimal/low/medium/high)")
+	rootCmd.Flags().StringVar(&reasoningEffort, "reasoning-effort", "minimal", "reasoning effort (minimal/low/medium/high)")
 	rootCmd.Flags().StringVar(&verbosity, "verbosity", "low", "verbosity (low/medium/high)")
 	rootCmd.Flags().StringVar(&baseURL, "base-url", "", "override base URL (provider default if empty)")
 	rootCmd.Flags().StringVar(&providerName, "provider", "openai", "LLM provider name (e.g., openai)")
