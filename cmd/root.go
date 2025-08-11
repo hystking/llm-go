@@ -265,7 +265,6 @@ var rootCmd = &cobra.Command{
 				}
 			}
 		} else {
-			// Not JSON; leave obj as nil and continue. This is unexpected when using --format.
 			os.Exit(1)
 		}
 
