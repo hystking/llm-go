@@ -125,6 +125,64 @@ func TestParseFormat(t *testing.T) {
 			format:  "tags:[]",
 			wantErr: true,
 		},
+		{
+			name:   "whitespace around keys and types",
+			format: " name : string , age : integer ",
+			wantProperties: map[string]interface{}{
+				"name": map[string]interface{}{"type": "string"},
+				"age":  map[string]interface{}{"type": "integer"},
+			},
+			wantErr: false,
+		},
+		{
+			name:    "trailing comma is invalid",
+			format:  "name:string,",
+			wantErr: true,
+		},
+		{
+			name:    "leading comma is invalid",
+			format:  ",name:string",
+			wantErr: true,
+		},
+		{
+			name:    "empty pair between commas is invalid",
+			format:  "name:string, ,age:integer",
+			wantErr: true,
+		},
+		{
+			name:   "duplicate keys last one wins",
+			format: "a:string,a:integer",
+			wantProperties: map[string]interface{}{
+				"a": map[string]interface{}{"type": "integer"},
+			},
+			wantErr: false,
+		},
+		{
+			name:   "array type with space before brackets",
+			format: "tags: string[]",
+			wantProperties: map[string]interface{}{
+				"tags": map[string]interface{}{
+					"type": "array",
+					"items": map[string]interface{}{
+						"type": "string",
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name:   "trailing spaces after colon default string",
+			format: "name:   ",
+			wantProperties: map[string]interface{}{
+				"name": map[string]interface{}{"type": "string"},
+			},
+			wantErr: false,
+		},
+		{
+			name:    "whitespace-only format is invalid",
+			format:  "   ",
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {
