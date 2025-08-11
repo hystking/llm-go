@@ -1,113 +1,236 @@
 # llmx
 
-One CLI for OpenAI/Anthropic/Gemini. Simple prompts in, useful JSON out — always structured via a friendly `--format` shorthand. By default, output is a JSON object with two string fields: `message` and `error`. If the configured error field is non-empty, the CLI prints it to stderr and exits with a non-zero status.
+A fast, schema-first CLI for calling multiple LLM providers (OpenAI, Anthropic, Gemini) with structured JSON output by default.
 
-## Quickstart
-- Requires Go 1.24.x
-- Build: `make build`
-- Install to `~/bin`: `make install` (ensure `~/bin` is in `PATH`)
-- Direct build: `go build -o llmx .`
-- Or from Releases: download a binary, `chmod +x llmx`, then place it in your `PATH`.
+- Multi-provider: OpenAI (Responses API), Anthropic (Messages API), Gemini (GenerateContent)
+- JSON-first: build strict schemas from a compact `--format` shorthand
+- Simple I/O: message from arg, pipe, or file (`-`)
+- Dev-friendly: verbose debugging with redaction, consistent flags across providers
 
-Tip: If publishing the module, you can also support `go install <module>@latest`.
 
-## API Keys
-- OpenAI (default provider): `OPENAI_API_KEY`
-- Anthropic: `ANTHROPIC_API_KEY`
-- Gemini: `GEMINI_API_KEY`
+## Quick Start
+
+1) Set an API key for your chosen provider:
+
+- OpenAI: `export OPENAI_API_KEY=sk-...`
+- Anthropic: `export ANTHROPIC_API_KEY=...`
+- Gemini: `export GEMINI_API_KEY=...`
+
+2) Call a model (OpenAI by default):
+
+```
+llmx "Summarize this tool in one line"
+```
+
+3) Choose a provider:
+
+```
+llmx --provider anthropic "Hello"
+llmx --provider gemini "Hello"
+```
+
+4) Read input from stdin:
+
+```
+echo "Turn this into a shell one-liner: list Go files" | llmx
+llmx - < prompt.txt
+```
+
+5) Structured output (default). The default schema is `message:string,error:string`:
+
+```
+llmx "What is 2+2?"
+# => {"message":"4","error":""}
+```
+
+6) Print only one key from the structured output:
+
+```
+llmx --format "command:string,explanation:string" --only command \
+  "Turn this into a shell command: list Go files"
+# => find . -type f -name "*.go"
+```
+
+
+## Installation
+
+- Binaries: see GitHub Releases (built via GoReleaser) for Linux, macOS, Windows (amd64, arm64).
+- From source (Go 1.24+):
+
+```
+git clone <this-repo>
+cd llmx
+make build           # builds ./llmx with version metadata
+make install         # moves llmx to ~/bin/ (ensure it's in PATH)
+```
+
+Run tests:
+
+```
+make test
+```
+
+
+## CLI Overview
+
+- `llmx [flags] ["your message"|-]`
+- If `-` is given or stdin is piped, llmx reads the message from stdin. Otherwise it uses the single argument as the message. If neither is provided and stdin is a TTY, help is shown.
+
+Common flags:
+
+- `--provider` string: `openai` (default) | `anthropic` | `gemini`
+- `--model` string: model name; defaults per provider
+- `--instructions` string: system/instructions text
+- `--format` string: output schema shorthand (default `"message,error"`)
+- `--only` string: print only the specified top-level key
+- `--error-key` string: name of the error field (default `error`)
+- `--max-tokens` int: provider-specific max output tokens (0 = provider default)
+- `--verbosity` string: `low` (default) | `medium` | `high` (OpenAI only)
+- `--reasoning-effort` string: `minimal` (default) | `low` | `medium` | `high` (OpenAI only)
+- `--base-url` string: override provider base URL (full URL)
+- `--verbose`: print request/response debug info to stderr (secrets redacted)
+- `--version`: print version (tag/commit/date)
+
+Exit behavior:
+
+- Non-2xx HTTP: prints status/body and exits non-zero.
+- Structured output is required: response text must be valid JSON. If JSON parsing fails, llmx exits non-zero.
+- Error gating: if `--error-key` is present in the JSON and is a non-empty string (not `"null"`), llmx prints it to stderr and exits non-zero.
+
+
+## Structured Output (Schema Shorthand)
+
+llmx builds provider-specific JSON constraints from a compact `--format` shorthand:
+
+- Grammar: `key[:type]` pairs, comma-separated. Example: `name:string,age:integer,active:boolean`.
+- Arrays: `type[]` (e.g., `tags:string[]`, `scores:number[]`). Nested arrays (`[][]`) are not allowed.
+- Whitespace around keys/types is ignored; duplicate keys: last one wins.
+- All keys are considered required.
 
 Examples:
-- bash/zsh: `export OPENAI_API_KEY=sk-...`
-- fish: `set -x OPENAI_API_KEY sk-...`
 
-The default provider is OpenAI. If you omit `--provider` and `OPENAI_API_KEY` is not set, the CLI prints a clear error with setup examples. Secrets are never shown.
+- `--format "message,error"` (default) => both are strings
+- `--format "name:string,age:integer,active:boolean"`
+- `--format "tags:string[]"`
 
-## Usage
-- Minimal OpenAI (JSON by default): `llmx "Hello"`
-- Minimal Anthropic: `llmx --provider anthropic "Hello"`
-- Minimal Gemini: `llmx --provider gemini "Hello"`
+Provider mapping:
 
-Input options:
-- Arg: `llmx "your message"`
-- Pipe: `echo "text" | llmx`
-- File via stdin: `llmx - < prompt.txt`
+- OpenAI (Responses API): strict `json_schema` with `required` for all keys.
+- Gemini (GenerateContent): `generationConfig.responseMimeType=application/json` + `responseSchema` with uppercased types (`STRING`, `INTEGER`, `NUMBER`, `BOOLEAN`, `ARRAY`).
+- Anthropic (Messages API): a precise system instruction is injected that asks for strict JSON only; Anthropic does not enforce JSON schema natively.
 
-## Common flags
-- `--provider openai|anthropic|gemini` (default: openai)
-- `--model string`
-- `--instructions string`
-- `--format string`  default `"message,error"`; e.g., `"name:string,age:integer,tags:string[]"`
-- `--error-key string` name of the error field in structured JSON (default: `error`). When set, your `--format` schema must include this key.
-- `--only key`  print only the specified top-level key from structured JSON output (requires JSON output, e.g., via `--format`)
-- `--max-tokens int`
-- `--base-url string`  override API base URL (useful for gateways)
-- `--verbosity low|medium|high` (default: low)
-- `--verbose` enable debug logs to stderr (secrets are redacted)
-- `--reasoning-effort minimal|low|medium|high` (default: minimal)
-- `--version`
+Error gating with `--error-key` (default `error`): if present and non-empty, llmx exits non-zero. Change with `--error-key <name>` and add that key to your `--format`.
 
-## Structured Output
-- Shorthand: key:type pairs, comma‑separated: `name:string,age:integer`
-- Arrays: `key:type[]` (`tags:string[]`)
-- Omitted type defaults to string (`name`)
 
-Example:
-```
-$ llmx --format "name:string,age:integer" "Alice is 14."
-{"name":"Alice","age":14}
+## Providers
 
-$ llmx --format "command:string,explanation:string" --only command \
-  "Turn this into a shell command: list go files"
-"find . -type f -name '*.go'"
-```
+OpenAI
 
-Notes:
-- OpenAI: strict JSON schema is enforced.
-- Anthropic: the CLI adds a system prompt to return only strict JSON for the requested keys; compliance depends on the model.
-- Gemini: uses JSON mode with a response schema when supported by the model.
+- API: `POST https://api.openai.com/v1/responses`
+- Auth: `Authorization: Bearer $OPENAI_API_KEY`
+- Defaults: `model=gpt-5-nano`
+- Mapping:
+  - `input` = message
+  - `instructions` = instructions
+  - `text.verbosity` = `--verbosity`
+  - `reasoning.effort` = `--reasoning-effort`
+  - `max_output_tokens` = `--max-tokens` (if > 0)
+  - JSON schema when `--format` is provided (default is provided).
 
-## Examples
-- Basic: `llmx "Hello"`
-- Anthropic: `llmx --provider anthropic "Hello"`
-- Gemini: `llmx --provider gemini "Hello"`
-- Pipe: `echo "Hello" | llmx`
-- File: `llmx - < prompt.txt`
-- Structured JSON: `llmx --format "name:string,age:integer" "Alice is 14."`
-- Only a field: `llmx --format "command:string,explanation:string" --only command "Turn this into a shell command: list go files"`
+Anthropic
+
+- API: `POST https://api.anthropic.com/v1/messages`
+- Auth: `x-api-key: $ANTHROPIC_API_KEY`, `anthropic-version: 2023-06-01`
+- Defaults: `model=claude-3-5-haiku-latest`, `max_tokens` derived from model family; override with `--max-tokens`.
+- Mapping:
+  - `messages=[{role:user, content: message}]`
+  - `system` = instructions (+ strict JSON guidance when `--format` is set)
+  - `max_tokens` = `--max-tokens` or default per model
+
+Gemini
+
+- API: `POST https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key=$GEMINI_API_KEY`
+- Auth: query string `key=$GEMINI_API_KEY`
+- Defaults: `model=gemini-2.0-flash`
+- Mapping:
+  - `contents=[{parts:[{text: message}]}]`
+  - `systemInstruction.parts[0].text` = instructions (optional)
+  - `generationConfig.maxOutputTokens` = `--max-tokens` (if > 0)
+  - JSON mode when `--format` is provided (default is provided): `responseMimeType=application/json` + `responseSchema`.
+
+Base URLs
+
+- Override with `--base-url` (full URL, including scheme and host). Defaults:
+  - OpenAI: `https://api.openai.com/v1`
+  - Anthropic: `https://api.anthropic.com/v1`
+  - Gemini: `https://generativelanguage.googleapis.com`
+
+
+## Debugging and Logging
+
+- `--verbose` prints:
+  - Provider payload (JSON)
+  - Request method/URL (API keys redacted), headers (secrets redacted)
+  - Response status and raw body (truncated at 64 KiB)
+- Logs are written to stderr; standard output is reserved for model output (or the `--only` selection).
+
 
 ## Development
-- Tests: `make test`
-- Clean: `make clean`
-- Build with version info:
-```
-go build -o llmx \
-  -ldflags "-X llmx/pkg/version.Version=v0.1.0 \
-             -X llmx/pkg/version.Commit=$(git rev-parse --short HEAD) \
-             -X llmx/pkg/version.Date=$(date -u +%Y-%m-%d)" .
-```
 
-## Releases (GitHub Releases)
-- Automated (recommended):
-  - Update `CHANGELOG.md`.
-  - Create a tag: `git tag -a vX.Y.Z -m "vX.Y.Z" && git push origin vX.Y.Z`.
-  - GitHub Actions builds binaries for Linux/macOS/Windows (amd64/arm64) via GoReleaser and creates a draft Release with assets.
-  - Review the draft, add notes if needed, and publish.
+- Build: `make build`
+- Install: `make install` (to `~/bin/`)
+- Test: `make test`
+- Lint: `make lint` (golangci-lint)
+- Release: `make release` (GoReleaser)
 
-- Manual (local):
-  - Ensure GoReleaser is installed and `GH_TOKEN`/`GITHUB_TOKEN` is set.
-  - Run `make release` or `goreleaser release --clean` from a tagged commit (e.g., `vX.Y.Z`).
+Version metadata is embedded via `-ldflags` (tag/commit/date); `llmx --version` prints it.
 
-Notes:
-- Version/commit/date are embedded via `-ldflags` from the tag and Git metadata.
-- The workflow file lives at `.github/workflows/release.yml`; GoReleaser config is `.goreleaser.yml`.
-- To auto‑publish instead of draft, set `release.draft: false` in `.goreleaser.yml`.
+Project layout:
 
-## Notes
-- Security: API keys are never printed; even with `--verbose`, secrets are redacted.
-- Base URL: when you set `--base-url`, your prompts and outputs may be sent to a third‑party gateway. Use only trusted endpoints and review their privacy/logging policies. The URL must be a full `https://` URL with a host; invalid URLs are validated early with a friendly error.
-- Telemetry: none by default.
+- `main.go`: entrypoint
+- `cmd/`: Cobra CLI (`root.go`)
+- `pkg/provider/`: provider interface and implementations (OpenAI, Anthropic, Gemini)
+- `pkg/parser/`: `--format` shorthand parser
+- `pkg/version/`: build-time version metadata
 
-## Why this CLI?
-- Multi‑provider: OpenAI, Anthropic, Gemini behind one interface.
-- Structured output: simple `--format` shorthand → strict JSON (OpenAI).
-- Simple flags: predictable, small surface area; works with pipes and files.
+
+## Extending (Adding a Provider)
+
+- Implement `pkg/provider.Provider` (four methods):
+  - `DefaultOptions() Options`
+  - `BuildAPIPayload(Options) (map[string]interface{}, error)`
+  - `BuildAPIRequest(payload, baseURL, RequestOptions)`
+  - `ParseAPIResponse([]byte) (string, error)`
+- Register it in `provider.New(name)` switch.
+- Add tests mirroring existing providers.
+
+
+## Notes and Guarantees
+
+- Non-streaming: responses are printed after the request completes.
+- Structured JSON is required: the CLI parses the model output as JSON and exits non-zero on parse failure.
+- Secrets are never printed in logs; API keys are redacted.
+
+
+## Environment Variables
+
+- `OPENAI_API_KEY`
+- `ANTHROPIC_API_KEY`
+- `GEMINI_API_KEY`
+
+Set one per the provider you use. You can also pass API keys via gateways using `--base-url` (ensure compatible auth semantics).
+
+
+## Changelog
+
+See CHANGELOG.md.
+
+
+## Contributing
+
+See AGENTS.md for repository practices, coding style, and testing guidelines. PRs with tests and concise rationale are welcome.
+
+
+## License
+
+MIT License (see LICENSE).
