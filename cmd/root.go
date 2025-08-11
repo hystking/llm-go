@@ -286,7 +286,7 @@ var rootCmd = &cobra.Command{
 
 func init() {
 	// Version info and template
-	rootCmd.Version = version.Version
+	rootCmd.Version = version.String()
 	rootCmd.SetVersionTemplate("{{.Version}}\n")
 
 	rootCmd.Flags().StringVar(&model, "model", "", "model name (provider default if empty)")

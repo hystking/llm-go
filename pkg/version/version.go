@@ -9,3 +9,7 @@ var (
 	Commit  = ""
 	Date    = ""
 )
+
+// String returns a human-friendly version string including commit and date
+// when available via -ldflags.
+func String() string { return Version + " (" + Commit + ") " + Date }
