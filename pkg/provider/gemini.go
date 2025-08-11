@@ -205,14 +205,13 @@ func (p *GeminiProvider) ParseAPIResponse(respBody []byte) (string, error) {
 	}
 
 	var b strings.Builder
-	for _, cand := range apiResp.Candidates {
+	if len(apiResp.Candidates) > 0 {
+		cand := apiResp.Candidates[0]
 		for _, part := range cand.Content.Parts {
 			if part.Text != "" {
 				b.WriteString(part.Text)
 			}
 		}
-		// Only use first candidate by default
-		break
 	}
 	return b.String(), nil
 }

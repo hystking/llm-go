@@ -211,7 +211,10 @@ var rootCmd = &cobra.Command{
 			fmt.Println("request failed:", err)
 			os.Exit(1)
 		}
-		defer resp.Body.Close()
+		defer func() {
+			// Explicitly ignore close error to satisfy errcheck
+			_ = resp.Body.Close()
+		}()
 
 		respBody, err := io.ReadAll(resp.Body)
 		if err != nil {
