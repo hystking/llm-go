@@ -1,0 +1,43 @@
+project_name: llmx
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: llmx
+    main: .
+    binary: llmx
+    env:
+      - CGO_ENABLED=0
+    goos: [linux, darwin, windows]
+    goarch: [amd64, arm64]
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+      - -X llmx/pkg/version.Version={{.Version}}
+      - -X llmx/pkg/version.Commit={{.ShortCommit}}
+      - -X llmx/pkg/version.Date={{.Date}}
+
+archives:
+  - id: archive
+    builds: [llmx]
+    name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - LICENSE
+      - README.md
+
+checksum:
+  name_template: 'checksums.txt'
+
+changelog:
+  sort: asc
+  use: github
+
+release:
+  draft: true

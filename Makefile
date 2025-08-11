@@ -1,6 +1,6 @@
 BINARY=llmx
 
-.PHONY: all build clean install test
+.PHONY: all build clean install test release lint
 
 all: build
 
@@ -15,3 +15,9 @@ install: build
 
 test:
 	go test -v ./...
+
+lint:
+	golangci-lint run
+
+release:
+	goreleaser release --clean
