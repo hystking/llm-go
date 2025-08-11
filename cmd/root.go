@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 
@@ -33,6 +34,7 @@ var (
 	model           string
 	reasoningEffort string
 	verbosity       string
+	verbose         bool
 	instructions    string
 	format          string
 	baseURL         string
@@ -116,11 +118,43 @@ var rootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
+		if verbose {
+			// Print payload intended for the provider
+			if b, err := json.MarshalIndent(payload, "", "  "); err == nil {
+				fmt.Fprintln(os.Stderr, "[llmx] Request payload:")
+				fmt.Fprintln(os.Stderr, string(b))
+			}
+		}
+
 		// Build request (API key resolved in provider if omitted here)
 		req, err := prov.BuildAPIRequest(payload, baseURL, provider.RequestOptions{})
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
+		}
+
+		if verbose {
+			// Redact secrets in URL and headers
+			safeURL := req.URL.String()
+			if u, err := url.Parse(safeURL); err == nil {
+				q := u.Query()
+				if q.Has("key") {
+					q.Set("key", "***")
+					u.RawQuery = q.Encode()
+				}
+				safeURL = u.String()
+			}
+			fmt.Fprintf(os.Stderr, "[llmx] Request: %s %s\n", req.Method, safeURL)
+			fmt.Fprintln(os.Stderr, "[llmx] Headers:")
+			for k, v := range req.Header {
+				if strings.EqualFold(k, "Authorization") || strings.EqualFold(k, "x-api-key") || strings.EqualFold(k, "X-API-Key") {
+					fmt.Fprintf(os.Stderr, "  %s: ***\n", k)
+					continue
+				}
+				if len(v) > 0 {
+					fmt.Fprintf(os.Stderr, "  %s: %s\n", k, v[0])
+				}
+			}
 		}
 
 		resp, err := http.DefaultClient.Do(req)
@@ -134,6 +168,21 @@ var rootCmd = &cobra.Command{
 		if err != nil {
 			fmt.Println("failed to read response:", err)
 			os.Exit(1)
+		}
+
+		if verbose {
+			fmt.Fprintf(os.Stderr, "[llmx] Response status: %d\n", resp.StatusCode)
+			// Print raw body (truncated if very large)
+			const maxDump = 64 * 1024
+			dump := respBody
+			if len(dump) > maxDump {
+				dump = dump[:maxDump]
+			}
+			fmt.Fprintln(os.Stderr, "[llmx] Raw response:")
+			fmt.Fprintln(os.Stderr, string(dump))
+			if len(respBody) > maxDump {
+				fmt.Fprintln(os.Stderr, "[llmx] (truncated)")
+			}
 		}
 
 		// Non-2xx handling
@@ -194,6 +243,7 @@ func init() {
 	rootCmd.Flags().StringVar(&model, "model", "", "model name (provider default if empty)")
 	rootCmd.Flags().StringVar(&reasoningEffort, "reasoning-effort", "minimal", "reasoning effort (minimal/low/medium/high)")
 	rootCmd.Flags().StringVar(&verbosity, "verbosity", "low", "verbosity (low/medium/high)")
+	rootCmd.Flags().BoolVar(&verbose, "verbose", false, "enable verbose debug logging to stderr")
 	rootCmd.Flags().StringVar(&baseURL, "base-url", "", "override base URL (provider default if empty)")
 	rootCmd.Flags().StringVar(&providerName, "provider", "openai", "LLM provider name (e.g., openai)")
 	rootCmd.Flags().IntVar(&maxTokens, "max-tokens", 0, "max output tokens (override; provider default if 0)")

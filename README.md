@@ -27,6 +27,7 @@ Minimal CLI for sending a prompt to an LLM API and printing the response. Option
 - `--max-tokens int`
 - `--base-url string`
 - `--verbosity low|medium|high` (default: low)
+- `--verbose` enable debug logs to stderr
 - `--reasoning-effort minimal|low|medium|high` (default: minimal)
 - `--version`
 
