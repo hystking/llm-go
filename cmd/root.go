@@ -259,7 +259,9 @@ var rootCmd = &cobra.Command{
 		if err := json.Unmarshal([]byte(textOut), &obj); err == nil {
 			// If the structured JSON contains a non-empty "error", exit non-zero.
 			if ev, ok := obj[errorKey]; ok {
-				if es, ok := ev.(string); ok && strings.TrimSpace(es) != "" {
+				es, ok := ev.(string)
+				es = strings.TrimSpace(es)
+				if ok && es != "" && es != "null" {
 					fmt.Fprintln(os.Stderr, es)
 					os.Exit(1)
 				}
