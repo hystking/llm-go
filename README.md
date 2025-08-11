@@ -82,6 +82,22 @@ go build -o llmx \
              -X llmx/pkg/version.Date=$(date -u +%Y-%m-%d)" .
 ```
 
+## Releases (GitHub Releases)
+- Automated (recommended):
+  - Update `CHANGELOG.md`.
+  - Create a tag: `git tag -a vX.Y.Z -m "vX.Y.Z" && git push origin vX.Y.Z`.
+  - GitHub Actions builds binaries for Linux/macOS/Windows (amd64/arm64) via GoReleaser and creates a draft Release with assets.
+  - Review the draft, add notes if needed, and publish.
+
+- Manual (local):
+  - Ensure GoReleaser is installed and `GH_TOKEN`/`GITHUB_TOKEN` is set.
+  - Run `make release` or `goreleaser release --clean` from a tagged commit (e.g., `vX.Y.Z`).
+
+Notes:
+- Version/commit/date are embedded via `-ldflags` from the tag and Git metadata.
+- The workflow file lives at `.github/workflows/release.yml`; GoReleaser config is `.goreleaser.yml`.
+- To auto‑publish instead of draft, set `release.draft: false` in `.goreleaser.yml`.
+
 ## Notes
 - Security: API keys are never printed; even with `--verbose`, secrets are redacted.
 - Base URL: when you set `--base-url`, your prompts and outputs may be sent to a third‑party gateway. Use only trusted endpoints and review their privacy/logging policies. The URL must be a full `https://` URL with a host; invalid URLs are validated early with a friendly error.
