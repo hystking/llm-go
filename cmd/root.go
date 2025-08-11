@@ -125,6 +125,14 @@ var rootCmd = &cobra.Command{
 			}
 		}
 
+		// If --only is specified, validate that the key exists in the schema.
+		if strings.TrimSpace(onlyKey) != "" {
+			if _, hasOnly := properties[onlyKey]; !hasOnly {
+				fmt.Printf("--only %q not found in --format schema. Include it in --format.\n", onlyKey)
+				os.Exit(1)
+			}
+		}
+
 		// Merge defaults from provider with CLI options
 		def := prov.DefaultOptions()
 
@@ -272,8 +280,8 @@ var rootCmd = &cobra.Command{
 
 		// If --only is specified, attempt to parse structured JSON and print only that key
 		if strings.TrimSpace(onlyKey) != "" {
-			val, ok := obj[onlyKey]
-			if !ok {
+			val, hasOnly := obj[onlyKey]
+			if !hasOnly {
 				fmt.Printf("key not found: %s\n", onlyKey)
 				os.Exit(1)
 			}
