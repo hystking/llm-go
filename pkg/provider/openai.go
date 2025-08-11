@@ -83,7 +83,7 @@ func (p *OpenAIProvider) BuildAPIRequest(payload map[string]interface{}, baseURL
 		apiKey = os.Getenv("OPENAI_API_KEY")
 	}
 	if apiKey == "" {
-		return nil, fmt.Errorf("OPENAI_API_KEY is not set")
+		return nil, MissingAPIKeyError{Provider: "openai", EnvVar: "OPENAI_API_KEY"}
 	}
 	req.Header.Set("Authorization", "Bearer "+apiKey)
 

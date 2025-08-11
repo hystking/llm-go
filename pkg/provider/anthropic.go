@@ -67,7 +67,7 @@ func (p *AnthropicProvider) BuildAPIRequest(payload map[string]interface{}, base
 		apiKey = os.Getenv("ANTHROPIC_API_KEY")
 	}
 	if apiKey == "" {
-		return nil, fmt.Errorf("ANTHROPIC_API_KEY is not set")
+		return nil, MissingAPIKeyError{Provider: "anthropic", EnvVar: "ANTHROPIC_API_KEY"}
 	}
 	req.Header.Set("x-api-key", apiKey)
 

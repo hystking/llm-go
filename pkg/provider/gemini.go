@@ -164,7 +164,7 @@ func (p *GeminiProvider) BuildAPIRequest(payload map[string]interface{}, baseURL
 		apiKey = os.Getenv("GEMINI_API_KEY")
 	}
 	if apiKey == "" {
-		return nil, fmt.Errorf("GEMINI_API_KEY is not set")
+		return nil, MissingAPIKeyError{Provider: "gemini", EnvVar: "GEMINI_API_KEY"}
 	}
 
 	q := u.Query()

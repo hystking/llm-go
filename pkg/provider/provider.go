@@ -1,6 +1,10 @@
 package provider
 
-import "net/http"
+import (
+	"errors"
+	"fmt"
+	"net/http"
+)
 
 // Options represents common inputs to build an API payload.
 type Options struct {
@@ -55,3 +59,25 @@ func New(name string) (Provider, error) {
 type ErrUnknownProvider struct{ name string }
 
 func (e ErrUnknownProvider) Error() string { return "unknown provider: " + e.name }
+
+// ErrMissingAPIKey is a sentinel error that indicates the API key is missing.
+var ErrMissingAPIKey = errors.New("missing API key")
+
+// MissingAPIKeyError includes details about which provider/env var is missing.
+// It unwraps to ErrMissingAPIKey so callers can use errors.Is/As.
+type MissingAPIKeyError struct {
+	Provider string
+	EnvVar   string
+}
+
+func (e MissingAPIKeyError) Error() string {
+	if e.Provider != "" && e.EnvVar != "" {
+		return fmt.Sprintf("%s: %s is not set", e.Provider, e.EnvVar)
+	}
+	if e.EnvVar != "" {
+		return fmt.Sprintf("%s is not set", e.EnvVar)
+	}
+	return ErrMissingAPIKey.Error()
+}
+
+func (e MissingAPIKeyError) Unwrap() error { return ErrMissingAPIKey }

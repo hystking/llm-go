@@ -2,8 +2,10 @@ package cmd
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	netpkg "net"
 	"net/http"
 	"net/url"
 	"os"
@@ -46,7 +48,23 @@ var (
 var rootCmd = &cobra.Command{
 	Use:   "llmx [flags] [\"your message\"|-]",
 	Short: "Send a message to the LLM API",
-	Args:  cobra.MaximumNArgs(1),
+	Example: strings.TrimSpace(`
+  # Minimal usage (OpenAI by default)
+  llmx "Hello"
+
+  # Anthropic / Gemini
+  llmx --provider anthropic "Hello"
+  llmx --provider gemini "Hello"
+
+  # Read from stdin (pipe or file)
+  echo "Hello" | llmx
+  llmx - < prompt.txt
+
+  # Structured JSON (OpenAI). Only print one key
+  llmx --format "name:string,age:integer" "Alice is 14."
+  llmx --format "command:string,explanation:string" --only command "Turn this into a shell command: list go files"
+    `),
+	Args: cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		var message string
 
@@ -82,7 +100,13 @@ var rootCmd = &cobra.Command{
 		// Select provider
 		prov, err := provider.New(providerName)
 		if err != nil {
-			fmt.Println(err)
+			// Unknown provider: print supported list for clarity
+			var up provider.ErrUnknownProvider
+			if errors.As(err, &up) {
+				fmt.Printf("unknown provider: %s\nSupported providers: openai, anthropic, gemini\n", providerName)
+			} else {
+				fmt.Println(err)
+			}
 			os.Exit(1)
 		}
 
@@ -126,9 +150,27 @@ var rootCmd = &cobra.Command{
 			}
 		}
 
+		// Validate custom base URL early for friendlier errors
+		if strings.TrimSpace(baseURL) != "" {
+			if u, err := url.Parse(baseURL); err != nil || u.Scheme == "" || u.Host == "" {
+				fmt.Printf("invalid --base-url: %q\nUse a full URL like https://api.example.com\n", baseURL)
+				os.Exit(1)
+			}
+		}
+
 		// Build request (API key resolved in provider if omitted here)
 		req, err := prov.BuildAPIRequest(payload, baseURL, provider.RequestOptions{})
 		if err != nil {
+			// Friendly guidance for missing API keys using typed errors
+			var mk provider.MissingAPIKeyError
+			if errors.Is(err, provider.ErrMissingAPIKey) && errors.As(err, &mk) {
+				env := strings.TrimSpace(mk.EnvVar)
+				if env == "" {
+					env = "API_KEY"
+				}
+				fmt.Printf("%s not found. Set one of:\n  bash/zsh: export %s=sk-...\n  fish:    set -x %s sk-...\n", env, env, env)
+				os.Exit(1)
+			}
 			fmt.Println(err)
 			os.Exit(1)
 		}
@@ -159,6 +201,13 @@ var rootCmd = &cobra.Command{
 
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
+			// Add a bit more context for common network failures
+			if ue, ok := err.(*url.Error); ok {
+				if _, ok := ue.Err.(*netpkg.OpError); ok || strings.Contains(strings.ToLower(ue.Error()), "no such host") {
+					fmt.Printf("network error: %v\nCheck connectivity and --base-url (if set).\n", err)
+					os.Exit(1)
+				}
+			}
 			fmt.Println("request failed:", err)
 			os.Exit(1)
 		}
