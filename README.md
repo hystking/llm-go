@@ -11,6 +11,7 @@ Minimal CLI for sending a prompt to an LLM API and printing the response. Option
 ## Setup
 - OpenAI: `export OPENAI_API_KEY=...`  (default provider)
 - Anthropic: `export ANTHROPIC_API_KEY=...`  (when `--provider anthropic`)
+- Gemini: `export GEMINI_API_KEY=...` (when `--provider gemini`)
 
 ## Usage
 - `llmx [flags] "your message"`
@@ -18,7 +19,7 @@ Minimal CLI for sending a prompt to an LLM API and printing the response. Option
 - `llmx -`  (force stdin)
 
 ## Common flags
-- `--provider openai|anthropic` (default: openai)
+- `--provider openai|anthropic|gemini` (default: openai)
 - `--model string`
 - `--instructions string`
 - `--format string`  e.g. `"name:string,age:integer,tags:string[]"`
@@ -40,6 +41,7 @@ Minimal CLI for sending a prompt to an LLM API and printing the response. Option
 - Structured JSON: `llmx --format "name:string,age:integer" "Alice is 14."`
 - Only a field: `llmx --format "command:string,explanation:string" --only command "Turn this into a shell command: list go files"`
 - Anthropic: `llmx --provider anthropic "Hello"`
+- Gemini: `llmx --provider gemini "Hello"`
 
 ## Development
 - Tests: `make test`

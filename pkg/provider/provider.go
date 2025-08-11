@@ -44,6 +44,8 @@ func New(name string) (Provider, error) {
 		return &OpenAIProvider{}, nil
 	case "anthropic", "claude", "anth":
 		return &AnthropicProvider{}, nil
+	case "gemini", "google", "gai":
+		return &GeminiProvider{}, nil
 	default:
 		return nil, ErrUnknownProvider{name: name}
 	}
