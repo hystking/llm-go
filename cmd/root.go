@@ -32,6 +32,24 @@ func ifZero(val, fallback int) int {
 	return val
 }
 
+// stripForJsonMarshal removes surrounding Markdown code fences and leading/trailing whitespace
+// to prepare a string for JSON marshalling.
+func stripForJsonMarshal(s string) string {
+	t := strings.TrimSpace(s)
+	if !strings.HasPrefix(t, "```") || !strings.HasSuffix(t, "```") {
+		return t
+	}
+	head := strings.IndexByte(t, '\n')
+	if head < 0 {
+		return t
+	}
+	tail := strings.LastIndex(t, "```")
+	if tail < 0 || tail <= head {
+		return t
+	}
+	return strings.TrimSpace(t[head+1 : tail])
+}
+
 var (
 	model           string
 	reasoningEffort string
@@ -126,7 +144,7 @@ var rootCmd = &cobra.Command{
 		}
 
 		// If --only is specified, validate that the key exists in the schema.
-		if strings.TrimSpace(onlyKey) != "" {
+		if onlyKey != "" {
 			if _, hasOnly := properties[onlyKey]; !hasOnly {
 				fmt.Printf("--only %q not found in --format schema. Include it in --format.\n", onlyKey)
 				os.Exit(1)
@@ -254,32 +272,32 @@ var rootCmd = &cobra.Command{
 			fmt.Printf("request failed with status %d:\n%s\n", resp.StatusCode, string(respBody))
 			os.Exit(1)
 		}
-
+		var obj map[string]interface{}
 		// Parse API response to extract text output (provider-specific)
 		textOut, err := prov.ParseAPIResponse(respBody)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
+		textOut = stripForJsonMarshal(textOut)
+		if err := json.Unmarshal([]byte(textOut), &obj); err != nil {
+			fmt.Fprintln(os.Stderr, "failed to decode structured JSON output:", err)
+			os.Exit(1)
+		}
 
-		// Best-effort JSON decode once; reuse for error/only handling.
-		var obj map[string]interface{}
-		if err := json.Unmarshal([]byte(textOut), &obj); err == nil {
-			// If the structured JSON contains a non-empty "error", exit non-zero.
-			if ev, ok := obj[errorKey]; ok {
-				es, ok := ev.(string)
+		// If the structured JSON contains a non-empty error field, exit non-zero.
+		if ev, ok := obj[errorKey]; ok {
+			if es, ok := ev.(string); ok {
 				es = strings.TrimSpace(es)
-				if ok && es != "" && es != "null" {
+				if es != "" && es != "null" {
 					fmt.Fprintln(os.Stderr, es)
 					os.Exit(1)
 				}
 			}
-		} else {
-			os.Exit(1)
 		}
 
 		// If --only is specified, attempt to parse structured JSON and print only that key
-		if strings.TrimSpace(onlyKey) != "" {
+		if onlyKey != "" {
 			val, hasOnly := obj[onlyKey]
 			if !hasOnly {
 				fmt.Printf("key not found: %s\n", onlyKey)
@@ -300,6 +318,14 @@ var rootCmd = &cobra.Command{
 				}
 				textOut = string(b)
 			}
+		} else {
+			// Structured JSON: print compact canonical JSON
+			outJSON, err := json.Marshal(obj)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, "failed to encode output:", err)
+				os.Exit(1)
+			}
+			textOut = string(outJSON)
 		}
 
 		// Ensure output ends with a single newline

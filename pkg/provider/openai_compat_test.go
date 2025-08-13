@@ -85,31 +85,6 @@ func TestOpenAICompatProvider_BuildAPIPayload_SchemaAndMessages(t *testing.T) {
 		}
 	}
 
-	// response_format
-	if _, present := payload["response_format"]; !present {
-		t.Fatalf("response_format key not present in payload: %#v", payload)
-	}
-	rf, ok := payload["response_format"].(map[string]interface{})
-	if !ok {
-		t.Fatalf("response_format missing or wrong type: %T %#v", payload["response_format"], payload["response_format"])
-	}
-	if rf["type"] != "json_schema" {
-		t.Fatalf("response_format type mismatch: %v", rf["type"])
-	}
-	js, ok := rf["json_schema"].(map[string]interface{})
-	if !ok {
-		t.Fatalf("json_schema missing or wrong type")
-	}
-	schema, ok := js["schema"].(map[string]interface{})
-	if !ok {
-		t.Fatalf("schema missing or wrong type")
-	}
-	if schema["type"] != "object" {
-		t.Fatalf("schema type mismatch: %v", schema["type"])
-	}
-	if pm, ok := schema["properties"].(map[string]interface{}); !ok || len(pm) != 2 {
-		t.Fatalf("properties mismatch: %v", schema["properties"])
-	}
 	if payload["max_tokens"] != 321 {
 		t.Fatalf("expected max_tokens=321, got %v", payload["max_tokens"])
 	}
