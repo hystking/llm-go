@@ -13,6 +13,32 @@ func TestParseFormat(t *testing.T) {
 		wantErr        bool
 	}{
 		{
+			name:   "shorthand key[] defaults to string array",
+			format: "tags[]",
+			wantProperties: map[string]interface{}{
+				"tags": map[string]interface{}{
+					"type": "array",
+					"items": map[string]interface{}{
+						"type": "string",
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name:   "shorthand key[] with trailing colon defaults string array",
+			format: "tags[]:",
+			wantProperties: map[string]interface{}{
+				"tags": map[string]interface{}{
+					"type": "array",
+					"items": map[string]interface{}{
+						"type": "string",
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
 			name:           "empty format returns empty properties",
 			format:         "",
 			wantProperties: map[string]interface{}{},

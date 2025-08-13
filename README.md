@@ -104,6 +104,7 @@ llmx builds provider-specific JSON constraints from a compact `--format` shortha
 
 - Grammar: `key[:type]` pairs, comma-separated. Example: `name:string,age:integer,active:boolean`.
 - Arrays: `type[]` (e.g., `tags:string[]`, `scores:number[]`). Nested arrays (`[][]`) are not allowed.
+- Arrays (shorthand): `key[]` equals `key:string[]` (e.g., `tags[]`).
 - Whitespace around keys/types is ignored; duplicate keys: last one wins.
 - All keys are considered required.
 
@@ -112,6 +113,7 @@ Examples:
 - `--format "message,error"` (default) => both are strings
 - `--format "name:string,age:integer,active:boolean"`
 - `--format "tags:string[]"`
+- `--format "tags[]"` (same as above; defaults to `string[]`)
 
 Provider mapping:
 
