@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"sort"
 	"strings"
 )
 
@@ -23,51 +22,8 @@ func (p *OpenAICompatProvider) BuildAPIPayload(opts Options) (map[string]interfa
 	// Build messages: optional system with instructions (+ schema hint), then user message
 	messages := make([]map[string]interface{}, 0, 2)
 
-	// If properties exist, craft a concise schema hint to nudge strict JSON output
-	var schemaHint string
-	if len(opts.Properties) > 0 {
-		keys := make([]string, 0, len(opts.Properties))
-		for k := range opts.Properties {
-			keys = append(keys, k)
-		}
-		sort.Strings(keys)
-		var b strings.Builder
-		b.WriteString("RETURN ONLY A STRICT JSON OBJECT. NO PROSE, NO MARKDOWN.\\n")
-		b.WriteString("Fields (all required): ")
-		for i, k := range keys {
-			if i > 0 {
-				b.WriteString(", ")
-			}
-			// best-effort type label
-			t := "string"
-			if m, ok := opts.Properties[k].(map[string]interface{}); ok {
-				if tt, ok := m["type"].(string); ok {
-					if strings.EqualFold(tt, "array") {
-						if it, ok := m["items"].(map[string]interface{}); ok {
-							if itype, ok := it["type"].(string); ok {
-								t = "array<" + itype + ">"
-							}
-						}
-					} else {
-						t = tt
-					}
-				}
-			}
-			b.WriteString(k + ": " + t)
-		}
-		schemaHint = b.String()
-	}
-
-	sys := strings.TrimSpace(opts.Instructions)
-	if schemaHint != "" {
-		if sys != "" {
-			sys = sys + "\n\n" + schemaHint
-		} else {
-			sys = schemaHint
-		}
-	}
-	if sys != "" {
-		// Use system role for wide compatibility
+	// Merge instruction with strict JSON hint if properties exist.
+	if sys := buildStrictJSONSystem(opts.Properties, opts.Instructions); strings.TrimSpace(sys) != "" {
 		messages = append(messages, map[string]interface{}{
 			"role":    "system",
 			"content": sys,
