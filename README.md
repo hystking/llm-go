@@ -1,8 +1,8 @@
 # llmx
 
-A fast, schema-first CLI for calling multiple LLM providers (OpenAI, Anthropic, Gemini) with structured JSON output by default.
+A fast, schema-first CLI for calling multiple LLM providers (OpenAI, OpenAI-Compatible Chat, Anthropic, Gemini) with structured JSON output by default.
 
-- Multi-provider: OpenAI (Responses API), Anthropic (Messages API), Gemini (GenerateContent)
+- Multi-provider: OpenAI (Responses API), OpenAI-Compatible Chat (Chat Completions), Anthropic (Messages API), Gemini (GenerateContent)
 - JSON-first: build strict schemas from a compact `--format` shorthand
 - Simple I/O: message from arg, pipe, or file (`-`)
 - Dev-friendly: verbose debugging with redaction, consistent flags across providers
@@ -78,7 +78,7 @@ make test
 
 Common flags:
 
-- `--provider` string: `openai` (default) | `anthropic` | `gemini`
+- `--provider` string: `openai` (default) | `openai-compat` | `anthropic` | `gemini`
 - `--model` string: model name; defaults per provider
 - `--instructions` string: system/instructions text
 - `--format` string: output schema shorthand (default `"message,error"`)
@@ -116,6 +116,7 @@ Examples:
 Provider mapping:
 
 - OpenAI (Responses API): strict `json_schema` with `required` for all keys.
+- OpenAI-Compatible Chat (Chat Completions): adds a strict-JSON system hint and, when possible, sets `response_format={type:"json_schema", json_schema:{...}}`.
 - Gemini (GenerateContent): `generationConfig.responseMimeType=application/json` + `responseSchema` with uppercased types (`STRING`, `INTEGER`, `NUMBER`, `BOOLEAN`, `ARRAY`).
 - Anthropic (Messages API): a precise system instruction is injected that asks for strict JSON only; Anthropic does not enforce JSON schema natively.
 
@@ -136,6 +137,16 @@ OpenAI
   - `reasoning.effort` = `--reasoning-effort`
   - `max_output_tokens` = `--max-tokens` (if > 0)
   - JSON schema when `--format` is provided (default is provided).
+
+OpenAI-Compatible Chat
+
+- API: `POST https://api.openai.com/v1/chat/completions`
+- Auth: `Authorization: Bearer $OPENAI_API_KEY`
+- Defaults: `model=gpt-4o-mini`
+- Mapping:
+  - `messages=[{role:system, content: instructions (+ strict JSON hint)}, {role:user, content: message}]`
+  - `response_format={type:json_schema, json_schema:{name: "response", schema:{...}}}` when `--format` is provided
+  - `max_tokens` = `--max-tokens` (if > 0)
 
 Anthropic
 
@@ -189,7 +200,7 @@ Project layout:
 
 - `main.go`: entrypoint
 - `cmd/`: Cobra CLI (`root.go`)
-- `pkg/provider/`: provider interface and implementations (OpenAI, Anthropic, Gemini)
+- `pkg/provider/`: provider interface and implementations
 - `pkg/parser/`: `--format` shorthand parser
 - `pkg/version/`: build-time version metadata
 

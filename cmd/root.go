@@ -104,7 +104,7 @@ var rootCmd = &cobra.Command{
 			// Unknown provider: print supported list for clarity
 			var up provider.ErrUnknownProvider
 			if errors.As(err, &up) {
-				fmt.Printf("unknown provider: %s\nSupported providers: openai, anthropic, gemini\n", providerName)
+				fmt.Printf("unknown provider: %s\nSupported providers: openai, openai-compat, anthropic, gemini\n", providerName)
 			} else {
 				fmt.Println(err)
 			}
